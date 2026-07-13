@@ -184,6 +184,7 @@
 
     <div class="panel" id="panel-account">
       <h2>ACCOUNT</h2>
+      <div class="setRow" id="setLang">language · 语言 <span class="val" id="langVal">English</span></div>
       <div class="setRow" id="setSound">sound <span class="val">on</span></div>
       <div class="setRow" id="setVoice">spoken narration <span class="val">off</span></div>
       <div class="setRow" id="setFresh"><span class="danger">abandon round, start a fresh parish</span><span class="val">&rsaquo;</span></div>
@@ -251,6 +252,11 @@ try{ const s=localStorage.getItem(SAVE_KEY);
 function persist(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE)); }catch(e){} }
 if(!SAVE.seed){ SAVE.seed=(Math.random()*2**31)|0; persist(); }
 
+/* ---------------- language ---------------- */
+const LANG=(SAVE.prefs&&SAVE.prefs.lang)||(((navigator.language||'').toLowerCase().indexOf('zh')===0)?'zh':'en');
+const ZH=LANG==='zh';
+const tr=(en,zh)=>ZH?zh:en;
+
 /* ---------------- seeded randomness (parish stays put until finished) ---------------- */
 let SEED=SAVE.seed;
 function mulberry32(a){ return function(){ a|=0; a=(a+0x6D2B79F5)|0;
@@ -301,241 +307,319 @@ function mapIndexOf(stopI){ return clamp((stopI/PER_MAP)|0,0,MAPS.length-1); }
 /* ============================================================
    CONTENT GENERATION — 199 varied stops + the final lamp
    ============================================================ */
-const OWNERS=["baker","tailor","cooper","glazier","weaver","potter","farrier","chandler",
-"innkeeper","midwife","schoolmistress","ferryman","beekeeper","clockmaker","cobbler",
-"bookbinder","apothecary","carpenter","fisherman","shepherd","gardener","printer","mason",
-"brewer","saddler","tinker","organist","lacemaker","miller","net-mender","thatcher",
-"harbormaster","bell-founder","mapmaker","rope-walker","cheesemonger"];
+const OWNERS=[["baker","面包师"],["tailor","裁缝"],["cooper","箍桶匠"],["glazier","玻璃匠"],["weaver","织工"],
+["potter","陶匠"],["farrier","蹄铁匠"],["chandler","蜡烛匠"],["innkeeper","客栈老板"],["midwife","接生婆"],
+["schoolmistress","女教师"],["ferryman","摆渡人"],["beekeeper","养蜂人"],["clockmaker","钟表匠"],["cobbler","鞋匠"],
+["bookbinder","装订匠"],["apothecary","药剂师"],["carpenter","木匠"],["fisherman","渔夫"],["shepherd","牧羊人"],
+["gardener","园丁"],["printer","印刷匠"],["mason","石匠"],["brewer","酿酒师"],["saddler","鞍匠"],
+["tinker","补锅匠"],["organist","风琴师"],["lacemaker","织花边的"],["miller","磨坊主"],["net-mender","补网人"],
+["thatcher","盖草顶的"],["harbormaster","港务长"],["bell-founder","铸钟匠"],["mapmaker","绘图师"],["rope-walker","制绳匠"],["cheesemonger","奶酪商"]];
 const nextOwner=bag(OWNERS);
+const N=(o,zhSuffix,enPattern)=>ZH?o[1]+(zhSuffix||"家的灯"):("the "+o[0]+(enPattern||"'s lamp"));
+function capN(n){ return ZH? "零一二三四五六七"[n]||String(n) : (["Zero","One","Two","Three","Four","Five","Six","Seven"][n]||String(n)); }
 
 const M={};
 
-M.embers=()=>{ const o=nextOwner(), w=rpick(["oven","hearth","forge","kiln","brazier","stove"]);
-  return { game:'embers', name:"the "+o+"'s lamp", cfg:{n:5+((rng()*5)|0)},
-    intro:"The "+o+"'s "+w+" still glows through the window — a bed of coals holding the shape of the day's heat.",
-    hint:"draw your finger slowly across the coals to rake ash over them",
-    done:"The "+w+" settles into soft grey. It will wake warm in the morning." }; };
+M.embers=()=>{ const o=nextOwner(), w=rpick([["oven","烤炉"],["hearth","壁炉"],["forge","锻炉"],["kiln","窑"],["brazier","火盆"],["stove","炉灶"]]);
+  return { game:'embers', name:N(o), cfg:{n:5+((rng()*5)|0)},
+    intro:tr("The "+o[0]+"'s "+w[0]+" still glows through the window — a bed of coals holding the shape of the day's heat.",
+             o[1]+"家的"+w[1]+"还在窗内透着微光——一床炭火，仍保着白日的形状与余温。"),
+    hint:tr("draw your finger slowly across the coals to rake ash over them","用指尖慢慢抚过炭火，把灰烬盖上去"),
+    done:tr("The "+w[0]+" settles into soft grey. It will wake warm in the morning.",w[1]+"沉进柔软的灰色。明早它会暖着醒来。") }; };
 
 M.cat=()=>{ const o=nextOwner();
-  const an=rpick(["grey cat","ginger cat","black cat","white cat","old sheepdog","small brown dog"]);
-  const isCat=an.includes('cat');
-  return { game:'cat', name:"the "+o+"'s lamp", cfg:{}, catFollow:isCat,
-    intro:"The "+o+"'s "+an+" is stretched on the step, pretending it wasn't waiting for you.",
-    hint:"stroke it, slowly — it can tell when you hurry",
-    done: isCat? "It stretches once, and decides that your round is now its round too."
-               : "Its tail thumps twice against the step, which in dog means everything is well." }; };
+  const an=rpick([["grey cat","灰猫",1],["ginger cat","橘猫",1],["black cat","黑猫",1],["white cat","白猫",1],["old sheepdog","老牧羊犬",0],["small brown dog","棕色小狗",0]]);
+  return { game:'cat', name:N(o), cfg:{}, catFollow:!!an[2],
+    intro:tr("The "+o[0]+"'s "+an[0]+" is stretched on the step, pretending it wasn't waiting for you.",
+             o[1]+"家的"+an[1]+"摊在台阶上，装作不是在等你。"),
+    hint:tr("stroke it, slowly — it can tell when you hurry","慢慢地顺毛摸——你一急它就知道"),
+    done: an[2]? tr("It stretches once, and decides that your round is now its round too.","它伸了个懒腰，决定你的巡灯从此也是它的巡灯。")
+               : tr("Its tail thumps twice against the step, which in dog means everything is well.","它的尾巴在台阶上敲了两下——狗语里的一切安好。") }; };
 
 M.chalk=()=>{ const v=rpick([
-   ["schoolhouse blackboard","a chalk ship sails through yesterday's arithmetic. It has no moon to sail by.","trace a slow circle above the ship to give it a moon","You hang a chalk moon over its mast. Ships sail better lit.",'ship'],
-   ["sign-writer's practice board","half-finished letters lean into each other like tired dancers.","trace a slow circle to give them a lantern to rest under","A chalk lantern to hold the words till morning.",'text'],
-   ["tavern slate","the day's tally sits in neat chalk rows, all debts asleep.","trace a slow circle to close the day's account","A full moon drawn over the sums. Paid in full, the night says.",'text'],
-   ["harbormaster's tide board","the evening tide is chalked in a careful hand.","trace a slow circle for tomorrow's high water","The tide has its moon now. It will know what to do.",'text'],
-   ["bakery menu slate","tomorrow's bread is promised in chalk.","trace a slow circle — every menu wants a plate on it","A round chalk plate, waiting for the first loaf.",'text']]);
-  return { game:'chalk', name:"the "+rpick(["school","corner","market","quay","lane"])+" lamp",
-    cfg:{sketch:v[4]},
-    intro:"On the "+v[0]+", "+v[1], hint:v[2], done:v[3] }; };
+   [tr("On the schoolhouse blackboard, a chalk ship sails through yesterday's arithmetic. It has no moon to sail by.","教室黑板上，一艘粉笔船正驶过昨天的算术题。它没有月亮可以导航。"),
+    tr("trace a slow circle above the ship to give it a moon","在船的上方慢慢画一个圆，送它一轮月亮"),
+    tr("You hang a chalk moon over its mast. Ships sail better lit.","你在桅杆上挂起一轮粉笔月。有月光的船开得更稳。"),'ship'],
+   [tr("On the sign-writer's practice board, half-finished letters lean into each other like tired dancers.","招牌匠的练字板上，写了一半的字母彼此倚着，像跳累的舞者。"),
+    tr("trace a slow circle to give them a lantern to rest under","慢慢画一个圆，给它们一盏可以歇脚的灯"),
+    tr("A chalk lantern to hold the words till morning.","一盏粉笔灯，守着这些字到天亮。"),'text'],
+   [tr("On the tavern slate, the day's tally sits in neat chalk rows, all debts asleep.","酒馆的石板上，今天的账目排得整整齐齐，所有欠账都睡了。"),
+    tr("trace a slow circle to close the day's account","慢慢画一个圆，替今天结个账"),
+    tr("A full moon drawn over the sums. Paid in full, the night says.","账目上画了一轮满月。夜说：两讫。"),'text'],
+   [tr("On the harbormaster's tide board, the evening tide is chalked in a careful hand.","港务长的潮汐板上，晚潮用工整的笔迹写着。"),
+    tr("trace a slow circle for tomorrow's high water","为明天的高潮位，慢慢画一个圆"),
+    tr("The tide has its moon now. It will know what to do.","潮水有了它的月亮，知道自己该做什么了。"),'text'],
+   [tr("On the bakery menu slate, tomorrow's bread is promised in chalk.","面包房的菜单板上，明天的面包已用粉笔许下。"),
+    tr("trace a slow circle — every menu wants a plate on it","慢慢画一个圆——每张菜单都想要一只盘子"),
+    tr("A round chalk plate, waiting for the first loaf.","一只圆圆的粉笔盘子，等着第一炉面包。"),'text']]);
+  const pl=rpick([["school","学堂"],["corner","街角"],["market","集市"],["quay","码头"],["lane","巷口"]]);
+  return { game:'chalk', name:tr("the "+pl[0]+" lamp",pl[1]+"的灯"), cfg:{sketch:v[3]},
+    intro:v[0], hint:v[1], done:v[2] }; };
 
-M.boats=()=>{ const p=rpick(["harbor pier","millpond jetty","ferry slip","reed bank","boathouse ramp"]);
+M.boats=()=>{ const p=rpick([["harbor pier","港口栈桥"],["millpond jetty","磨坊池小码头"],["ferry slip","渡口"],["reed bank","苇岸"],["boathouse ramp","船屋坡道"]]);
   const n=2+((rng()*3)|0);
-  return { game:'boats', name:"the "+p.split(' ')[0]+" lamp", cfg:{n},
-    intro:(n===2?"Two boats":n===3?"Three boats":"Four boats")+" knock softly against the "+p+", still rocking from a sea they left hours ago.",
-    hint:"rest your finger on each boat until it settles",
-    done:"One by one the boats put their heads down on the water." }; };
+  return { game:'boats', name:tr("the "+p[0].split(' ')[0]+" lamp",p[1]+"的灯"), cfg:{n},
+    intro:tr((n===2?"Two boats":n===3?"Three boats":"Four boats")+" knock softly against the "+p[0]+", still rocking from a sea they left hours ago.",
+             capN(n)+"只小船轻轻磕着"+p[1]+"，还在摇晃着几小时前离开的那片水。"),
+    hint:tr("rest your finger on each boat until it settles","把手指搭在每只船上，直到它安稳"),
+    done:tr("One by one the boats put their heads down on the water.","小船一只接一只，把头枕在了水面上。") }; };
 
-M.clock=()=>{ const o=nextOwner(), c=rpick(["small brass clock","parlor clock","longcase clock","mantel clock","station clock"]);
-  return { game:'clock', name:"the "+o+"'s lamp", cfg:{need:Math.PI*(3+rng()*2)},
-    intro:"In the "+o+"'s window the "+c+" has stopped again, embarrassed among its ticking cousins.",
-    hint:"wind it — slow circles, the way its keeper taught you",
-    done:"It joins the ticking conversation mid-sentence, as if it never left." }; };
+M.clock=()=>{ const o=nextOwner(), c=rpick([["small brass clock","小铜钟"],["parlor clock","客厅座钟"],["longcase clock","落地钟"],["mantel clock","壁炉钟"],["station clock","车站钟"]]);
+  return { game:'clock', name:N(o), cfg:{need:Math.PI*(3+rng()*2)},
+    intro:tr("In the "+o[0]+"'s window the "+c[0]+" has stopped again, embarrassed among its ticking cousins.",
+             o[1]+"家窗内，那台"+c[1]+"又停了，在一群滴答作响的亲戚里有些难为情。"),
+    hint:tr("wind it — slow circles, the way its keeper taught you","上发条——慢慢地转圈，像它的主人教你的那样"),
+    done:tr("It joins the ticking conversation mid-sentence, as if it never left.","它接着半句话又加入了滴答的谈话，好像从没离开过。") }; };
 
 M.apples=()=>{ const v=rpick([
-   ["windfall apples","basket","orchard grass",[185,95,70]],
-   ["late pears","crate","walled-garden lawn",[170,160,80]],
-   ["dark plums","pail","grass by the lane",[130,90,140]],
-   ["chestnuts","sack","green by the church",[150,100,60]],
-   ["walnuts","bowl","mill-yard cobbles",[140,115,75]],
-   ["brown eggs","straw bowl","henhouse straw",[200,175,140]]]);
+   ["windfall apples","落地苹果","basket","篮子","orchard grass","果园草地",[185,95,70]],
+   ["late pears","晚梨","crate","木箱","walled-garden lawn","院墙下的草坪",[170,160,80]],
+   ["dark plums","黑李子","pail","小桶","grass by the lane","巷边草丛",[130,90,140]],
+   ["chestnuts","栗子","sack","麻袋","green by the church","教堂旁的草地",[150,100,60]],
+   ["walnuts","核桃","bowl","木碗","mill-yard cobbles","磨坊院的石板",[140,115,75]],
+   ["brown eggs","棕壳蛋","straw bowl","草窝碗","henhouse straw","鸡舍的草堆",[200,175,140]]]);
   const n=4+((rng()*3)|0);
-  return { game:'apples', name:"the "+rpick(["orchard","garden","yard","green","lane"])+" lamp",
-    cfg:{n,color:v[3]},
-    intro:capN(n)+" "+v[0]+" lie scattered in the "+v[2]+", and the "+v[1]+" by the gate stands empty.",
-    hint:"carry them to the "+v[1]+", one at a time",
-    done:capN(n)+" good ones for the morning. The night mice will find the rest." }; };
-function capN(n){ return ["Zero","One","Two","Three","Four","Five","Six","Seven"][n]||String(n); }
+  const pl=rpick([["orchard","果园"],["garden","园子"],["yard","院子"],["green","草地"],["lane","巷子"]]);
+  return { game:'apples', name:tr("the "+pl[0]+" lamp",pl[1]+"的灯"), cfg:{n,color:v[6]},
+    intro:tr(capN(n)+" "+v[0]+" lie scattered in the "+v[4]+", and the "+v[2]+" by the gate stands empty.",
+             capN(n)+"枚"+v[1]+"散落在"+v[5]+"，门边的"+v[3]+"还空着。"),
+    hint:tr("carry them to the "+v[2]+", one at a time","一次一枚，把它们放进"+v[3]),
+    done:tr(capN(n)+" good ones for the morning. The night mice will find the rest.",
+            capN(n)+"枚好收成，留给明天早晨。剩下的，夜里的田鼠会找到。") }; };
 
-M.bucket=()=>{ const p=rpick(["market","orchard","chapel","crossroads","north-field","churchyard"]);
-  return { game:'bucket', name:"the "+p+" well lamp", cfg:{},
-    intro:"The "+p+" well has caught the moon in its bucket again. It should be returned to the sky before it forgets its place.",
-    hint:"lower the bucket to the water, gently — the moon spooks easily",
-    done:"The moon slides back up to the sky, unhurried, dripping starlight." }; };
+M.bucket=()=>{ const p=rpick([["market","集市"],["orchard","果园"],["chapel","教堂"],["crossroads","十字路口"],["north-field","北田"],["churchyard","墓园"]]);
+  return { game:'bucket', name:tr("the "+p[0]+" well lamp",p[1]+"井边的灯"), cfg:{},
+    intro:tr("The "+p[0]+" well has caught the moon in its bucket again. It should be returned to the sky before it forgets its place.",
+             p[1]+"的井又把月亮兜在桶里了。得在它忘了自己位置之前，把它送回天上。"),
+    hint:tr("lower the bucket to the water, gently — the moon spooks easily","轻轻把桶放到水面——月亮容易受惊"),
+    done:tr("The moon slides back up to the sky, unhurried, dripping starlight.","月亮不慌不忙地滑回天上，一路滴着星光。") }; };
 
 M.fireflies=()=>{ const v=rpick([
-   ["fireflies","meadow",[190,230,120]],
-   ["moths","churchyard",[210,205,190]],
-   ["fireflies","hop garden",[190,230,120]],
-   ["glow-worms","hedgerow",[170,230,160]],
-   ["moths","mill meadow",[210,205,190]]]);
+   ["fireflies","萤火虫","meadow","草甸",[190,230,120]],
+   ["moths","飞蛾","churchyard","墓园",[210,205,190]],
+   ["fireflies","萤火虫","hop garden","啤酒花园子",[190,230,120]],
+   ["glow-worms","发光虫","hedgerow","树篱",[170,230,160]],
+   ["moths","飞蛾","mill meadow","磨坊草地",[210,205,190]]]);
   const n=6+((rng()*4)|0);
-  return { game:'fireflies', name:"the "+v[1]+" lamp", cfg:{n,color:v[2]},
-    intro:"The "+v[1]+"'s "+v[0]+" are still up past their hour, wandering loose between the fenceposts.",
-    hint:"hold your lantern out and keep still — let them come to you",
-    done:"They settle around the warm glass like small thoughts going quiet." }; };
+  return { game:'fireflies', name:tr("the "+v[2]+" lamp",v[3]+"的灯"), cfg:{n,color:v[4]},
+    intro:tr("The "+v[2]+"'s "+v[0]+" are still up past their hour, wandering loose between the fenceposts.",
+             v[3]+"的"+v[1]+"还没归睡，在篱笆桩之间游荡。"),
+    hint:tr("hold your lantern out and keep still — let them come to you","提着灯站定别动——让它们自己来"),
+    done:tr("They settle around the warm glass like small thoughts going quiet.","它们绕着温热的玻璃安顿下来，像一些渐渐安静的小念头。") }; };
 
 M.washing=()=>{ const o=nextOwner();
-  const g=rpick(["white shirts","linen sheets","pale aprons","handkerchiefs","pillowslips"]);
+  const g=rpick([["white shirts","白衬衫"],["linen sheets","亚麻床单"],["pale aprons","浅色围裙"],["handkerchiefs","手帕"],["pillowslips","枕套"]]);
   const n=3+((rng()*3)|0);
-  return { game:'washing', name:"the "+o+"'s lamp", cfg:{n},
-    intro:"The "+o+"'s "+g+" were forgotten on the line, "+capN(n).toLowerCase()+" pale shapes breathing in the night air.",
-    hint:"smooth each one down over the line, slowly",
-    done:"Folded by feel. They'll be creased with moonlight by morning." }; };
+  return { game:'washing', name:N(o), cfg:{n},
+    intro:tr("The "+o[0]+"'s "+g[0]+" were forgotten on the line, "+capN(n).toLowerCase()+" pale shapes breathing in the night air.",
+             o[1]+"家的"+g[1]+"忘在了晾衣绳上，"+capN(n)+"个浅色的影子在夜气里一呼一吸。"),
+    hint:tr("smooth each one down over the line, slowly","顺着绳子，把每一件慢慢抚平"),
+    done:tr("Folded by feel. They'll be creased with moonlight by morning.","凭手感叠好了。到早晨，会带着月光的折痕。") }; };
 
-M.bellrope=()=>{ const b=rpick(["chapel bell","school bell","harbor bell","fire bell","tower bell"]);
-  return { game:'bellrope', name:"the "+b.split(' ')[0]+" lamp", cfg:{},
-    intro:"In the tower the "+b+"'s rope is still swaying, remembering its last ring all this time after.",
-    hint:"hold the rope until it forgets the bell",
-    done:"The rope hangs straight. The bell says nothing — its favorite word." }; };
+M.bellrope=()=>{ const b=rpick([["chapel bell","教堂钟"],["school bell","学堂钟"],["harbor bell","港口钟"],["fire bell","火警钟"],["tower bell","塔钟"]]);
+  return { game:'bellrope', name:tr("the "+b[0].split(' ')[0]+" lamp",b[1]+"楼的灯"), cfg:{},
+    intro:tr("In the tower the "+b[0]+"'s rope is still swaying, remembering its last ring all this time after.",
+             "塔里，"+b[1]+"的绳子还在轻轻摇——那一响过去了这么久，它还记着。"),
+    hint:tr("hold the rope until it forgets the bell","握住绳子，直到它忘了那口钟"),
+    done:tr("The rope hangs straight. The bell says nothing — its favorite word.","绳子垂直了。钟什么也不说——那是它最喜欢的一个字。") }; };
 
 M.leaves=()=>{ const v=rpick([
-   ["leaves","old stone bridge","leaf"],
-   ["petals","footbridge","petal"],
-   ["leaves","weir bridge","leaf"],
-   ["seed-wings","plank bridge","seed-wing"]]);
+   ["leaves","old stone bridge","leaf","老石桥","叶子"],
+   ["petals","footbridge","petal","小木桥","花瓣"],
+   ["leaves","weir bridge","leaf","堰桥","叶子"],
+   ["seed-wings","plank bridge","seed-wing","木板桥","翅果"]]);
   const n=3+((rng()*2)|0);
-  return { game:'leaves', name:"the bridge lamp", cfg:{n,word:v[2]},
-    intro:"The river slides beneath the "+v[1]+", carrying the village's day off to wherever days go.",
-    hint:"drop a "+v[2]+" and watch the river take it — "+capN(n).toLowerCase()+" should do",
-    done:"The river takes each one, carrying nothing important away." }; };
+  return { game:'leaves', name:tr("the bridge lamp","桥头的灯"), cfg:{n,word:tr(v[2],v[4])},
+    intro:tr("The river slides beneath the "+v[1]+", carrying the village's day off to wherever days go.",
+             "河水从"+v[3]+"下滑过，把村庄的这一天带去日子该去的地方。"),
+    hint:tr("drop a "+v[2]+" and watch the river take it — "+capN(n).toLowerCase()+" should do",
+            "丢下一片"+v[4]+"，看河水把它带走——"+capN(n)+"片就够"),
+    done:tr("The river takes each one, carrying nothing important away.","河水把它们一一收下。带走的，都不是要紧的东西。") }; };
 
 M.candles=()=>{ const v=rpick([
-   ["toy shop window","for the wooden soldiers on parade","The soldiers stand down for the night. The rocking horse keeps watch.",true],
-   ["chandler's window","among coils of pale new wick","The chandler's own candles, finally allowed to sleep.",false],
-   ["inn parlor sill","left over from the last slow talkers","The parlor goes dark, still warm with talk.",false],
-   ["vestry window","in a neat brass row","The vestry settles. Even the hymn books exhale.",false]]);
+   [tr("toy shop window","玩具店的橱窗"),tr("for the wooden soldiers on parade","为列队的木头士兵"),
+    tr("The soldiers stand down for the night. The rocking horse keeps watch.","士兵们今晚解散了。摇木马替他们守夜。"),true],
+   [tr("chandler's window","蜡烛匠的橱窗"),tr("among coils of pale new wick","在一圈圈新烛芯之间"),
+    tr("The chandler's own candles, finally allowed to sleep.","蜡烛匠自己的蜡烛，终于也被允许睡了。"),false],
+   [tr("inn parlor sill","客栈厅堂的窗台"),tr("left over from the last slow talkers","那些聊到最晚的人留下的"),
+    tr("The parlor goes dark, still warm with talk.","厅堂暗了下去，谈话的余温还在。"),false],
+   [tr("vestry window","法衣室的窗台"),tr("in a neat brass row","在一排黄铜烛台上"),
+    tr("The vestry settles. Even the hymn books exhale.","法衣室安顿了。连圣歌本都舒了一口气。"),false]]);
   const n=3+((rng()*3)|0);
-  return { game:'candles', name:"the "+v[0].split(' ')[0]+" lamp", cfg:{n,toys:v[3]},
-    intro:"In the "+v[0]+", "+capN(n).toLowerCase()+" little candles are still burning "+v[1]+".",
-    hint:"press each small flame until it sleeps", done:v[2] }; };
+  return { game:'candles', name:tr("the "+v[0].split(' ')[0]+" lamp",v[0]+"的灯"), cfg:{n,toys:v[3]},
+    intro:tr("In the "+v[0]+", "+capN(n).toLowerCase()+" little candles are still burning "+v[1]+".",
+             v[0]+"里，"+capN(n)+"支小蜡烛还亮着，"+v[1]+"。"),
+    hint:tr("press each small flame until it sleeps","把每一点火苗按到睡着"), done:v[2] }; };
 
-M.stones=()=>{ const p=rpick(["ford","brook","shore","fell path"]);
-  return { game:'stones', name:"the "+p+" lamp", cfg:{},
-    intro:"By the "+p+", someone's cairn has toppled — three flat stones lying apart that used to be a small tower meaning 'this is the way'.",
-    hint:"stack the stones back into a cairn, one on another",
-    done:"The cairn stands again. Travelers and sleepwalkers will find their way." }; };
+M.stones=()=>{ const p=rpick([["ford","浅滩"],["brook","小溪"],["shore","湖岸"],["fell path","山径"]]);
+  return { game:'stones', name:tr("the "+p[0]+" lamp",p[1]+"的灯"), cfg:{},
+    intro:tr("By the "+p[0]+", someone's cairn has toppled — three flat stones lying apart that used to be a small tower meaning 'this is the way'.",
+             p[1]+"边，谁堆的石堆倒了——三块扁石头散开躺着，原本是一座小塔，意思是：路在这边。"),
+    hint:tr("stack the stones back into a cairn, one on another","把石头一块叠一块，堆回一座石堆"),
+    done:tr("The cairn stands again. Travelers and sleepwalkers will find their way.","石堆重新立起来了。旅人和梦游的人都能找到路。") }; };
+
 M.curtains=()=>{ const o=nextOwner();
-  return { game:'curtains', name:"the "+o+"'s lamp", cfg:{},
-    intro:"Three windows of the "+o+"'s house still stare at the street, curtains open, rooms breathing slow behind them.",
-    hint:"draw each curtain closed with a slow pull",
-    done:"Three soft closings. The house shuts its eyes." }; };
-M.gate=()=>{ const p=rpick(["orchard","churchyard","paddock","kitchen-garden"]);
-  return { game:'gate', name:"the "+p+" gate lamp", cfg:{},
-    intro:"The "+p+" gate has swung open again, creaking to itself about its hinges.",
-    hint:"swing it closed, slowly — it complains if you hurry",
-    done:"The latch finds its notch. The gate mutters once and settles." }; };
-M.candleboat=()=>{ const p=rpick(["millpond","harbor basin","reed pool"]);
-  return { game:'candleboat', name:"the "+p+" lamp", cfg:{},
-    intro:"An old custom: on quiet nights, the lamplighter sets one candle-boat on the "+p+" for everyone too asleep to wish.",
-    hint:"set the little boat on the water and give it one gentle push",
-    done:"It carries its small flame out into the dark, wobbling but sure." }; };
-M.owl=()=>{ const p=rpick(["oak","barn gable","chapel eave","pine bough"]);
-  return { game:'owl', name:"the "+p+" lamp", cfg:{},
-    intro:"An owl on the "+p+" is holding its nightly staring contest with you. It always wins. Tonight, lose on purpose.",
-    hint:"press and hold to close your eyes — the owl will copy you",
-    done:"You open your eyes. The owl hasn't. Contest lost, perfectly." }; };
-M.web=()=>{ const o=nextOwner();
-  return { game:'web', name:"the "+o+"'s lamp", cfg:{},
-    intro:"A spider in the "+o+"'s doorway fell asleep one strand short of a finished web.",
-    hint:"trace the last strand along the dotted line, slowly",
-    done:"The web is whole. Dew is already booking places on it for morning." }; };
-M.teapot=()=>{ const o=nextOwner();
-  return { game:'teapot', name:"the "+o+"'s lamp", cfg:{},
-    intro:"The "+o+" has fallen asleep in a chair, and the last cup of evening tea was never poured.",
-    hint:"tilt the pot gently — tea only pours for a patient hand",
-    done:"One quiet cup, steaming beside the chair for whenever they stir." }; };
-M.shutters=()=>{ const o=nextOwner();
-  return { game:'shutters', name:"the "+o+"'s lamp", cfg:{},
-    intro:"The "+o+"'s shutters stand open like four raised eyebrows.",
-    hint:"hold each shutter until it swings to and latches",
-    done:"Four small clicks. The house lowers its eyebrows and sleeps." }; };
-M.cart=()=>{ const t=rpick(["hay cart","apple wagon","peat barrow"]);
-  return { game:'cart', name:"the barn lamp", cfg:{},
-    intro:"The "+t+" was left in the lane, a few slow feet short of the barn.",
-    hint:"lean on it and glide it home — push, drift, push",
-    done:"It rolls the last foot on its own, proud of itself, and stops in the straw." }; };
-M.musicbox=()=>{ const o=nextOwner();
-  return { game:'musicbox', name:"the "+o+"'s lamp", cfg:{},
-    intro:"A music box on the "+o+"'s sill stopped six notes before the end of its lullaby. Nobody sleeps well on an unfinished tune.",
-    hint:"turn the little crank in slow circles and let it finish",
-    done:"The last note hangs in the air like a lantern of its own, then goes out politely." }; };
-M.quilt=()=>{ const w=rpick(["child","old dog","grandmother","twins"]);
-  return { game:'quilt', name:"the nursery lamp", cfg:{},
-    intro:"Through the low window: a sleeping "+w+", quilt kicked down to the waist, night air moving in the room.",
-    hint:"draw the quilt up, one slow pull — wake nobody",
-    done:"Tucked to the chin. The breathing inside slows to match yours." }; };
-M.smoke=()=>{ const o=nextOwner();
-  return { game:'smoke', name:"the "+o+"'s lamp", cfg:{},
-    intro:"The "+o+"'s chimney smoke is drifting straight across the moon, which is considered rude in five parishes.",
-    hint:"waft it aside with slow strokes — smoke argues with hasty hands",
-    done:"The smoke bows and leans away. The moon accepts the apology." }; };
-M.frost=()=>{ const o=nextOwner();
-  return { game:'frost', name:"the "+o+"'s lamp", cfg:{},
-    intro:"The "+o+"'s window is going over to frost, and by the old custom the last warm breath of the night should sign it.",
-    hint:"breathe on the pane — rub slow circles until it fogs over",
-    done:"In the fog, frost draws its own star by morning. You've given it the canvas." }; };
-M.lock=()=>{ const p=rpick(["church door","granary","tithe barn","boathouse"]);
-  return { game:'lock', name:"the "+p+" lamp", cfg:{},
-    intro:"The great "+p+" key waits in its lock — three heavy, patient turns between the village and the night.",
-    hint:"turn the key clockwise until it clunks three times",
-    done:"Three clunks, felt in the elbow more than heard. Locked, and lullabied." }; };
-M.geese=()=>({ game:'geese', name:"the water-meadow lamp", cfg:{},
-    intro:"Five geese are crossing the moon tonight, one at a time, the way they always do when the parish is nearly asleep.",
-    hint:"count each one as it passes the moon — touch anywhere",
-    done:"Five. All accounted for. The sky closes its ledger." });
-M.echo=()=>{ const p=rpick(["dry well","cellar stair","cliff path"]);
-  return { game:'echo', name:"the "+p+" lamp", cfg:{},
-    intro:"The "+p+" keeps an old echo that gets lonely around this hour.",
-    hint:"press once to call down — then wait for it to come back. Three times",
-    done:"The third echo comes back slower than it went. Even echoes yawn." }; };
-M.blot=()=>{ const o=nextOwner();
-  return { game:'blot', name:"the "+o+"'s lamp", cfg:{},
-    intro:"The "+o+" left tomorrow's page still wet on the desk, three glistening lines of fresh ink.",
-    hint:"press the blotter gently on each wet line and hold",
-    done:"The words are dry and certain now. They'll keep till morning." }; };
-M.weathervane=()=>{ const p=rpick(["mill","church tower","grange roof"]);
-  return { game:'weathervane', name:"the "+p+" lamp", cfg:{},
-    intro:"The "+p+" weathervane has been sulking crosswind all evening, and the wind would like a word.",
-    hint:"turn the vane to face the wind and hold it there a moment",
-    done:"Vane and wind agree at last. The night's paperwork is done." }; };
-M.hourglass=()=>{ const o=nextOwner();
-  return { game:'hourglass', name:"the "+o+"'s lamp", cfg:{},
-    intro:"On the "+o+"'s shelf stands the house hourglass, sand all in the bottom bulb. The house can't officially sleep until it's running.",
-    hint:"turn it over, then simply watch the sand for a while",
-    done:"The sand whispers down. You watched the whole minute and it watched you back." }; };
-M.pump=()=>({ game:'pump', name:"the square lamp", cfg:{},
-    intro:"The village pump is dripping into its bucket — a small tin heartbeat keeping half the square awake.",
-    hint:"press the handle down slowly, three full strokes, to seat the valve",
-    done:"Drip... drip... and then nothing. The square exhales." });
-M.ferrycord=()=>({ game:'ferrycord', name:"the crossing lamp", cfg:{},
-    intro:"The ferry's night-cord hangs by the landing. Three slow pulls tells the far bank all's well; hurried pulls mean trouble, so — slow.",
-    hint:"pull the cord down gently, wait, and pull again — three bells",
-    done:"Three soft bells cross the water. A lantern on the far bank dips twice: understood." });
-M.starline=()=>({ game:'starline', name:"the fell-top lamp", cfg:{},
-    intro:"Four bright stars are out over the fells, waiting to be joined into the Shepherd — the constellation that watches the parish sleep.",
-    hint:"draw lines from star to star until the Shepherd stands",
-    done:"The Shepherd leans on his crook, on duty till dawn. You may stand down." });
-M.snowpath=()=>{ const o=nextOwner();
-  return { game:'snowpath', name:"the "+o+"'s lamp", cfg:{},
-    intro:"Snow has drifted over the "+o+"'s doorstep. An old kindness: the lamplighter clears it so morning arrives without shoveling.",
-    hint:"sweep the snow away with slow strokes of your palm",
-    done:"Stone and doormat bare again. The kindness will be assumed to be weather." }; };
-M.ripples=()=>{ const p=rpick(["mirror pond","mill lade","stone trough"]);
-  return { game:'ripples', name:"the "+p+" lamp", cfg:{},
-    intro:"The "+p+" is almost — almost — still enough to hold the moon without spilling it.",
-    hint:"rest one finger on the water and keep it perfectly still",
-    done:"The water forgets you're there. The moon settles into it like a coin into velvet." }; };
+  return { game:'curtains', name:N(o), cfg:{},
+    intro:tr("Three windows of the "+o[0]+"'s house still stare at the street, curtains open, rooms breathing slow behind them.",
+             o[1]+"家有三扇窗还睁着眼望着街道，帘子敞开，屋里的呼吸缓慢。"),
+    hint:tr("draw each curtain closed with a slow pull","慢慢拉上每一幅帘子"),
+    done:tr("Three soft closings. The house shuts its eyes.","三次轻轻的合拢。这栋房子闭上了眼睛。") }; };
 
-const FINAL={ game:'final', name:"your own lamp", cfg:{},
-  intro:"And here — at the far edge of the parish, at the end of the longest round anyone has ever walked — is your own gate, your own door, your own lamp. The last light of all.",
-  hint:"press and hold, as slow as an exhale — the flame goes when you're ready", done:"" };
+M.gate=()=>{ const p=rpick([["orchard","果园"],["churchyard","墓园"],["paddock","围场"],["kitchen-garden","菜园"]]);
+  return { game:'gate', name:tr("the "+p[0]+" gate lamp",p[1]+"门口的灯"), cfg:{},
+    intro:tr("The "+p[0]+" gate has swung open again, creaking to itself about its hinges.",
+             p[1]+"的门又荡开了，对着自己的合页咯吱抱怨。"),
+    hint:tr("swing it closed, slowly — it complains if you hurry","慢慢把它荡回去——你一急它就叫"),
+    done:tr("The latch finds its notch. The gate mutters once and settles.","门闩找到了槽。门咕哝了一声，安定下来。") }; };
+
+M.candleboat=()=>{ const p=rpick([["millpond","磨坊池"],["harbor basin","港湾"],["reed pool","苇塘"]]);
+  return { game:'candleboat', name:tr("the "+p[0]+" lamp",p[1]+"的灯"), cfg:{},
+    intro:tr("An old custom: on quiet nights, the lamplighter sets one candle-boat on the "+p[0]+" for everyone too asleep to wish.",
+             "一个老习俗：安静的夜里，提灯人替所有睡得太沉、来不及许愿的人，在"+p[1]+"上放一只烛火小船。"),
+    hint:tr("set the little boat on the water and give it one gentle push","把小船放上水面，轻轻推一下"),
+    done:tr("It carries its small flame out into the dark, wobbling but sure.","它载着小小的火光，晃晃悠悠但笃定地驶进黑暗里。") }; };
+
+M.owl=()=>{ const p=rpick([["oak","橡树"],["barn gable","谷仓山墙"],["chapel eave","礼拜堂屋檐"],["pine bough","松枝"]]);
+  return { game:'owl', name:tr("the "+p[0]+" lamp",p[1]+"下的灯"), cfg:{},
+    intro:tr("An owl on the "+p[0]+" is holding its nightly staring contest with you. It always wins. Tonight, lose on purpose.",
+             p[1]+"上的猫头鹰在跟你进行每晚一次的对视比赛。它从来都赢。今晚，故意输给它。"),
+    hint:tr("press and hold to close your eyes — the owl will copy you","按住不放，合上你的眼睛——猫头鹰会学你"),
+    done:tr("You open your eyes. The owl hasn't. Contest lost, perfectly.","你睁开眼。猫头鹰没有。比赛输了，输得恰到好处。") }; };
+
+M.web=()=>{ const o=nextOwner();
+  return { game:'web', name:N(o), cfg:{},
+    intro:tr("A spider in the "+o[0]+"'s doorway fell asleep one strand short of a finished web.",
+             o[1]+"家的门洞里，一只蜘蛛差一根丝没织完网，就睡着了。"),
+    hint:tr("trace the last strand along the dotted line, slowly","沿着虚线，慢慢补上最后一根丝"),
+    done:tr("The web is whole. Dew is already booking places on it for morning.","网完整了。露水已经在预订明早的座位。") }; };
+
+M.teapot=()=>{ const o=nextOwner();
+  return { game:'teapot', name:N(o), cfg:{},
+    intro:tr("The "+o[0]+" has fallen asleep in a chair, and the last cup of evening tea was never poured.",
+             o[1]+"在椅子里睡着了，晚上最后一杯茶一直没倒。"),
+    hint:tr("tilt the pot gently — tea only pours for a patient hand","轻轻斜壶——茶只为耐心的手流"),
+    done:tr("One quiet cup, steaming beside the chair for whenever they stir.","一杯安静的茶，冒着热气放在椅边，等人醒来。") }; };
+
+M.shutters=()=>{ const o=nextOwner();
+  return { game:'shutters', name:N(o), cfg:{},
+    intro:tr("The "+o[0]+"'s shutters stand open like four raised eyebrows.",
+             o[1]+"家的百叶窗四扇敞着，像四道扬起的眉毛。"),
+    hint:tr("hold each shutter until it swings to and latches","按住每扇窗板，直到它荡拢、上闩"),
+    done:tr("Four small clicks. The house lowers its eyebrows and sleeps.","四声轻响。房子放下眉毛，睡了。") }; };
+
+M.cart=()=>{ const t=rpick([["hay cart","干草车"],["apple wagon","苹果车"],["peat barrow","泥炭手推车"]]);
+  return { game:'cart', name:tr("the barn lamp","谷仓的灯"), cfg:{},
+    intro:tr("The "+t[0]+" was left in the lane, a few slow feet short of the barn.",
+             t[1]+"被留在巷子里，离谷仓还差慢悠悠的几步。"),
+    hint:tr("lean on it and glide it home — push, drift, push","靠上去推它回家——推一把，滑一段，再推一把"),
+    done:tr("It rolls the last foot on its own, proud of itself, and stops in the straw.","最后一步它自己滚了进去，颇为得意，停在干草里。") }; };
+
+M.musicbox=()=>{ const o=nextOwner();
+  return { game:'musicbox', name:N(o), cfg:{},
+    intro:tr("A music box on the "+o[0]+"'s sill stopped six notes before the end of its lullaby. Nobody sleeps well on an unfinished tune.",
+             o[1]+"家窗台上的八音盒，在摇篮曲结束前六个音停了。曲子没唱完，谁都睡不踏实。"),
+    hint:tr("turn the little crank in slow circles and let it finish","慢慢摇那只小曲柄，让它唱完"),
+    done:tr("The last note hangs in the air like a lantern of its own, then goes out politely.","最后一个音在空气里悬了一会儿，像一盏自己的小灯，然后礼貌地熄了。") }; };
+
+M.quilt=()=>{ const w=rpick([["child","孩子"],["old dog","老狗"],["grandmother","祖母"],["twins","双胞胎"]]);
+  return { game:'quilt', name:tr("the nursery lamp","卧房窗外的灯"), cfg:{},
+    intro:tr("Through the low window: a sleeping "+w[0]+", quilt kicked down to the waist, night air moving in the room.",
+             "矮窗里：熟睡的"+w[1]+"，被子踢到了腰间，夜气在屋里走动。"),
+    hint:tr("draw the quilt up, one slow pull — wake nobody","慢慢把被子拉上去，一次拉好——别吵醒任何人"),
+    done:tr("Tucked to the chin. The breathing inside slows to match yours.","掖到了下巴。屋里的呼吸，慢慢和你的合上了拍。") }; };
+
+M.smoke=()=>{ const o=nextOwner();
+  return { game:'smoke', name:N(o), cfg:{},
+    intro:tr("The "+o[0]+"'s chimney smoke is drifting straight across the moon, which is considered rude in five parishes.",
+             o[1]+"家的炊烟正笔直地飘过月亮——这在五个教区都算失礼。"),
+    hint:tr("waft it aside with slow strokes — smoke argues with hasty hands","用缓慢的手势把它拂开——烟跟急性子讲不通"),
+    done:tr("The smoke bows and leans away. The moon accepts the apology.","烟鞠了一躬，侧身让开。月亮接受了道歉。") }; };
+
+M.frost=()=>{ const o=nextOwner();
+  return { game:'frost', name:N(o), cfg:{},
+    intro:tr("The "+o[0]+"'s window is going over to frost, and by the old custom the last warm breath of the night should sign it.",
+             o[1]+"家的窗正在结霜。按老规矩，夜里最后一口暖气，该在上面签个名。"),
+    hint:tr("breathe on the pane — rub slow circles until it fogs over","对着玻璃呵气——慢慢画圈，把它整个哈满雾"),
+    done:tr("In the fog, frost draws its own star by morning. You've given it the canvas.","雾里，霜会在天亮前画出自己的星星。你给了它画布。") }; };
+
+M.lock=()=>{ const p=rpick([["church door","教堂大门"],["granary","谷仓"],["tithe barn","什一仓"],["boathouse","船屋"]]);
+  return { game:'lock', name:tr("the "+p[0]+" lamp",p[1]+"前的灯"), cfg:{},
+    intro:tr("The great "+p[0]+" key waits in its lock — three heavy, patient turns between the village and the night.",
+             p[1]+"的大钥匙等在锁孔里——在村庄与黑夜之间，隔着沉沉的、不紧不慢的三圈。"),
+    hint:tr("turn the key clockwise until it clunks three times","顺时针转动钥匙，直到它咔哒三声"),
+    done:tr("Three clunks, felt in the elbow more than heard. Locked, and lullabied.","三声闷响，与其说听见，不如说从手肘上感到。锁上了，也哄睡了。") }; };
+
+M.geese=()=>({ game:'geese', name:tr("the water-meadow lamp","水草甸的灯"), cfg:{},
+    intro:tr("Five geese are crossing the moon tonight, one at a time, the way they always do when the parish is nearly asleep.",
+             "今晚有五只雁正一只接一只地掠过月亮。教区快睡着的时候，它们总是这样。"),
+    hint:tr("count each one as it passes the moon — touch anywhere","每当一只经过月亮就数一下——碰哪里都行"),
+    done:tr("Five. All accounted for. The sky closes its ledger.","五只，一只不少。天空合上了它的账本。") });
+
+M.echo=()=>{ const p=rpick([["dry well","枯井"],["cellar stair","地窖楼梯"],["cliff path","崖径"]]);
+  return { game:'echo', name:tr("the "+p[0]+" lamp",p[1]+"旁的灯"), cfg:{},
+    intro:tr("The "+p[0]+" keeps an old echo that gets lonely around this hour.",
+             p[1]+"里住着一个老回声，每到这个时辰就有点寂寞。"),
+    hint:tr("press once to call down — then wait for it to come back. Three times","按一下，朝下喊一声——然后等它回来。一共三次"),
+    done:tr("The third echo comes back slower than it went. Even echoes yawn.","第三个回声回来得比去时慢。回声也会打呵欠。") }; };
+
+M.blot=()=>{ const o=nextOwner();
+  return { game:'blot', name:N(o), cfg:{},
+    intro:tr("The "+o[0]+" left tomorrow's page still wet on the desk, three glistening lines of fresh ink.",
+             o[1]+"把明天的那一页留在桌上没干，三行新墨还闪着光。"),
+    hint:tr("press the blotter gently on each wet line and hold","把吸墨纸轻轻按在每一行湿字上，按住"),
+    done:tr("The words are dry and certain now. They'll keep till morning.","字迹干了，笃定了。它们能守到天亮。") }; };
+
+M.weathervane=()=>{ const p=rpick([["mill","磨坊"],["church tower","教堂塔"],["grange roof","庄园屋顶"]]);
+  return { game:'weathervane', name:tr("the "+p[0]+" lamp",p[1]+"的灯"), cfg:{},
+    intro:tr("The "+p[0]+" weathervane has been sulking crosswind all evening, and the wind would like a word.",
+             p[1]+"的风向标别扭地横了一晚上风，风想跟它谈谈。"),
+    hint:tr("turn the vane to face the wind and hold it there a moment","把风向标转向风来的方向，稳住片刻"),
+    done:tr("Vane and wind agree at last. The night's paperwork is done.","风与标终于说到了一处。夜里的公文办完了。") }; };
+
+M.hourglass=()=>{ const o=nextOwner();
+  return { game:'hourglass', name:N(o), cfg:{},
+    intro:tr("On the "+o[0]+"'s shelf stands the house hourglass, sand all in the bottom bulb. The house can't officially sleep until it's running.",
+             o[1]+"家的架子上立着家用沙漏，沙子全在下面那只肚子里。沙漏不转起来，这栋房子就不算正式入睡。"),
+    hint:tr("turn it over, then simply watch the sand for a while","把它翻过来，然后只是看一会儿沙子"),
+    done:tr("The sand whispers down. You watched the whole minute and it watched you back.","沙子窸窸窣窣地落。你看完了整整一分钟，它也看了你一分钟。") }; };
+
+M.pump=()=>({ game:'pump', name:tr("the square lamp","广场的灯"), cfg:{},
+    intro:tr("The village pump is dripping into its bucket — a small tin heartbeat keeping half the square awake.",
+             "村里的水泵在往桶里滴水——一颗小小的铁皮心跳，吵得半个广场睡不着。"),
+    hint:tr("press the handle down slowly, three full strokes, to seat the valve","慢慢把手柄压到底，压满三下，让阀门坐实"),
+    done:tr("Drip... drip... and then nothing. The square exhales.","滴……滴……然后没有了。广场舒了一口气。") });
+
+M.ferrycord=()=>({ game:'ferrycord', name:tr("the crossing lamp","渡口的灯"), cfg:{},
+    intro:tr("The ferry's night-cord hangs by the landing. Three slow pulls tells the far bank all's well; hurried pulls mean trouble, so — slow.",
+             "渡船的夜绳挂在码头边。慢慢拉三下，是告诉对岸一切平安；拉得急是出了事。所以——慢慢来。"),
+    hint:tr("pull the cord down gently, wait, and pull again — three bells","轻轻把绳往下拉，等一等，再拉——三声钟"),
+    done:tr("Three soft bells cross the water. A lantern on the far bank dips twice: understood.","三声轻钟渡过水面。对岸一盏灯点了两下头：知道了。") });
+
+M.starline=()=>({ game:'starline', name:tr("the fell-top lamp","岭顶的灯"), cfg:{},
+    intro:tr("Four bright stars are out over the fells, waiting to be joined into the Shepherd — the constellation that watches the parish sleep.",
+             "岭上出了四颗亮星，等着被连成'牧羊人'——守着教区睡觉的那个星座。"),
+    hint:tr("draw lines from star to star until the Shepherd stands","从星到星画线，直到牧羊人站起来"),
+    done:tr("The Shepherd leans on his crook, on duty till dawn. You may stand down.","牧羊人拄着他的杖，值夜到天明。你可以下岗了。") });
+
+M.snowpath=()=>{ const o=nextOwner();
+  return { game:'snowpath', name:N(o), cfg:{},
+    intro:tr("Snow has drifted over the "+o[0]+"'s doorstep. An old kindness: the lamplighter clears it so morning arrives without shoveling.",
+             "雪盖住了"+o[1]+"家的门阶。一桩老好事：提灯人扫掉它，让早晨来的时候不用铲雪。"),
+    hint:tr("sweep the snow away with slow strokes of your palm","用手掌慢慢把雪扫开"),
+    done:tr("Stone and doormat bare again. The kindness will be assumed to be weather.","石阶和门垫又露出来了。这桩好事，会被当成是天气干的。") }; };
+
+M.ripples=()=>{ const p=rpick([["mirror pond","镜塘"],["mill lade","磨坊水道"],["stone trough","石水槽"]]);
+  return { game:'ripples', name:tr("the "+p[0]+" lamp",p[1]+"边的灯"), cfg:{},
+    intro:tr("The "+p[0]+" is almost — almost — still enough to hold the moon without spilling it.",
+             p[1]+"几乎——只差一点——就静得能盛住月亮而不洒出来。"),
+    hint:tr("rest one finger on the water and keep it perfectly still","把一根手指搁在水面上，一动不动"),
+    done:tr("The water forgets you're there. The moon settles into it like a coin into velvet.","水忘了你在。月亮落进去，像一枚硬币落进丝绒。") }; };
+
+const FINAL={ game:'final', name:tr("your own lamp","你自己的灯"), cfg:{},
+  intro:tr("And here — at the far edge of the parish, at the end of the longest round anyone has ever walked — is your own gate, your own door, your own lamp. The last light of all.",
+           "而这里——在教区的最边上，在没有人走完过的最长一轮巡灯的尽头——是你自己的院门、你自己的房门、你自己的灯。整个教区最后的一点光。"),
+  hint:tr("press and hold, as slow as an exhale — the flame goes when you're ready",
+          "按住不放，像呼出一口气那样慢——火苗会在你准备好的时候熄灭"), done:"" };
 
 /* weighted sequence per map, no mechanic twice in a row */
 const MECHS=Object.keys(M);
@@ -596,7 +680,7 @@ let started=false, phase='walk', stop=0, lastTouch=1e12, t0=0;
 let px=40, camX=0, companionKind='none', catX=0;
 let holdT=0, holding=false, holdNeed=7, holdDone=false;
 let lingerUntil=0, waitTap=false, letGo=false, drowsing=false, over=false;
-let sayGen=0, MG=null, miniA=0, doneAt=0;
+let sayGen=0, MG=null, miniA=0, doneAt=0, jarPulse=null;
 const ptr={x:0,y:0,down:false,px:0,py:0,speed:0,lastT:0};
 
 const S=id=>document.getElementById(id);
@@ -662,11 +746,32 @@ function initAudio(){
   gainMaster=actx.createGain(); gainMaster.gain.value=0; gainMaster.connect(actx.destination);
   [48,48.7,96.4].forEach((f,i)=>{ const o=actx.createOscillator(); o.type='sine'; o.frequency.value=f;
     const g=actx.createGain(); g.gain.value=i===2?0.012:0.045; o.connect(g); g.connect(gainMaster); o.start(); });
+  /* softer bed: the melody carries the room now */
   noiseBuf=actx.createBuffer(1,actx.sampleRate*2,actx.sampleRate);
   const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
   const src=actx.createBufferSource(); src.buffer=noiseBuf; src.loop=true;
   const f=actx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=180; f.Q.value=0.4;
-  const g=actx.createGain(); g.gain.value=0.05; src.connect(f); f.connect(g); g.connect(gainMaster); src.start();
+  const g=actx.createGain(); g.gain.value=0.022; src.connect(f); f.connect(g); g.connect(gainMaster); src.start();
+}
+
+/* generative lullaby: slow pentatonic notes, drifting downward, spacing out as the night deepens */
+const PAD_SCALE=[220,196,164.81,146.83,130.81,110];
+let padIdx=1, padNextAt=0;
+function playPad(f,vol,dur){ if(!actx||!soundOn) return; try{
+  const t=actx.currentTime;
+  [[f,1],[f*2,0.22],[f*1.5,0.10]].forEach(p2=>{
+    const o=actx.createOscillator(); o.type='sine'; o.frequency.value=p2[0];
+    const g2=actx.createGain(); g2.gain.setValueAtTime(0.0001,t);
+    g2.gain.linearRampToValueAtTime(vol*p2[1]*sfxVol(),t+dur*0.35);
+    g2.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g2); g2.connect(gainMaster); o.start(t); o.stop(t+dur+0.1); });
+}catch(e){} }
+function padStep(now){
+  padIdx=clamp(padIdx+((Math.random()<0.6?1:-1)*(Math.random()<0.85?1:2)),0,PAD_SCALE.length-1);
+  if(padIdx===PAD_SCALE.length-1&&Math.random()<0.4) padIdx=0;   // resolve and begin again
+  playPad(PAD_SCALE[padIdx],0.05,7);
+  if(Math.random()<0.22) playPad(PAD_SCALE[padIdx]/2,0.02,10);   // occasional low root under it
+  padNextAt=now+lerp(3.5,8.5,ease(dimP()))+Math.random()*2;
 }
 function setVol(v){ if(gainMaster) gainMaster.gain.setTargetAtTime(v,actx.currentTime,2.5); }
 function sfxVol(){ return (1-dimP()*0.6); }
@@ -2024,7 +2129,8 @@ function miniComplete(){
   const v=VIGNETTES[stop];
   if(v.catFollow&&companionKind==='none') companionKind='cat';
   sfx.puff(); sfx.chime();
-  SAVE.fireflies+=1+(Math.random()<0.35?1:0);
+  const earned=1+(Math.random()<0.35?1:0);
+  SAVE.fireflies+=earned; jarPulse={n:earned,t:nowS()};
   SAVE.lampsTotal++; SAVE.stop=stop+1;
   SAVE.mechDone[v.game]=true;
   checkAchievements(); persist();
@@ -2408,6 +2514,7 @@ function renderAch(){
   w.prepend(h);
 }
 function renderAccount(){
+  S('langVal').textContent=ZH?'简体中文':'English';
   S('setSound').querySelector('.val').textContent=soundOn?'on':'off';
   S('setVoice').querySelector('.val').textContent=voiceOn?'on':'off';
 }
@@ -2420,6 +2527,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='panel-'+id));
   if(id==='custom') ensureThree();
 }));
+S('setLang').addEventListener('click',()=>{ SAVE.prefs.lang=ZH?'en':'zh'; persist(); location.reload(); });
 S('setSound').addEventListener('click',()=>{ soundOn=!soundOn; SAVE.prefs.sound=soundOn; persist(); renderAccount();
   if(gainMaster) setVol(soundOn?0.45:0); });
 S('setVoice').addEventListener('click',()=>{ voiceOn=!voiceOn; SAVE.prefs.voice=voiceOn; persist(); renderAccount(); });
@@ -2506,6 +2614,7 @@ function frame(){
 
   const p=dimP();
   if(actx&&soundOn&&!drowsing) setVol(lerp(0.45,0.08,ease(p)));
+  if(actx&&soundOn&&!drowsing&&phase!=='end'&&now>=padNextAt) padStep(now);
 
   if(phase==='walk'){
     const speed=lerp(85,34,ease(p))*curMap().walk;
@@ -2721,6 +2830,30 @@ function draw(now,dt){
     ctx.fillStyle=`rgba(2,2,4,${0.55*miniA})`; ctx.fillRect(0,0,W,H);
     if(MG){ ctx.save(); ctx.globalAlpha=miniA; MG.draw(now,P); ctx.restore(); }
   }
+
+  /* fireflies paid into the jar — small, quiet, visible */
+  if(jarPulse){
+    const el=nowS()-jarPulse.t;
+    if(el>4.5){ jarPulse=null; }
+    else {
+      const a=(el<3.5?1:1-(el-3.5))*0.85*P.dim;
+      const jx=24, jy=34;
+      ctx.strokeStyle=`rgba(200,190,150,${a*0.6})`; ctx.lineWidth=1.5;
+      ctx.strokeRect(jx-7,jy-8,14,17);
+      ctx.fillStyle=`rgba(200,190,150,${a*0.45})`; ctx.fillRect(jx-9,jy-12,18,3);
+      for(let k=0;k<jarPulse.n;k++){
+        const t2=clamp(el*0.7-k*0.35,0,1);
+        const fx=jx+56*(1-t2)+Math.sin(el*3+k*4)*7*(1-t2);
+        const fy=jy+2-24*Math.sin(t2*Math.PI)*(k%2?1:0.6);
+        ctx.fillStyle=`rgba(185,217,138,${a*(0.5+0.5*Math.abs(Math.sin(el*6+k)))})`;
+        ctx.beginPath(); ctx.arc(t2>=1?jx+(k-0.5)*4:fx, t2>=1?jy+2:fy, 1.8,0,6.283); ctx.fill();
+      }
+      ctx.fillStyle=`rgba(185,217,138,${a})`;
+      ctx.font='italic 13px Georgia'; ctx.textAlign='left';
+      ctx.fillText('+'+jarPulse.n, jx+13, jy+3);
+      ctx.textAlign='center';
+    }
+  }
 }
 
 function hillband(baseY,amp,freq,off){
@@ -2749,6 +2882,48 @@ function drawFigure(x,y,P,stepPh,now){
   else if(hat==='hood'){ ctx.beginPath(); ctx.arc(0,-55,9,Math.PI*0.9,Math.PI*2.1); ctx.fill();
     ctx.beginPath(); ctx.moveTo(-9,-52); ctx.quadraticCurveTo(0,-70,9,-52); ctx.closePath(); ctx.fill(); }
   else { ctx.fillRect(-7,-62,14,4); }
+  /* tailoring: the same coat he wears on the home page */
+  {
+    const coatId=SAVE.equipped.coat;
+    const trimC=mix(coatC,[0,0,0],0.35);
+    const brassA=0.9*P.dim;
+    if(coatId==='harbor'){                     /* long sailor coat, double button rows */
+      ctx.fillStyle=rgba(coatC,1);
+      ctx.beginPath(); ctx.moveTo(-8,-26); ctx.lineTo(8,-26); ctx.lineTo(6.5,-14); ctx.lineTo(-6.5,-14); ctx.closePath(); ctx.fill();
+      ctx.fillStyle=rgba([176,141,69],brassA);
+      for(const bx2 of [-2.6,2.6]) for(let k=0;k<3;k++) ctx.fillRect(bx2-0.8,-44+k*6,1.7,1.7);
+      ctx.strokeStyle=rgba(trimC,0.9); ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(-6.5,-15); ctx.lineTo(6.5,-15); ctx.stroke();
+    } else {
+      ctx.fillStyle=rgba([176,141,69],brassA);
+      for(let k=0;k<3;k++) ctx.fillRect(-0.8,-44+k*6,1.7,1.7);
+    }
+    if(coatId==='moss'){                       /* belt, buckle, satchel on its strap */
+      ctx.fillStyle=rgba(trimC,1); ctx.fillRect(-8,-37,16,2.6);
+      ctx.fillStyle=rgba([176,141,69],brassA); ctx.fillRect(-1.6,-37.6,3.2,3.6);
+      ctx.strokeStyle=rgba([51,37,26],0.9); ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(-10,-32); ctx.lineTo(-1,-47); ctx.stroke();
+      ctx.fillStyle=rgba([61,44,29],0.95); ctx.fillRect(-13.5,-33,6.5,7.5);
+      ctx.strokeStyle=rgba([90,66,45],0.8); ctx.lineWidth=0.8;
+      ctx.strokeRect(-13.5,-33,6.5,3);
+    }
+    if(coatId==='ember'){                      /* shoulder cape with brass clasp */
+      ctx.fillStyle=rgba(mix(coatC,[0,0,0],0.25),1);
+      ctx.beginPath(); ctx.moveTo(-10.5,-48); ctx.lineTo(10.5,-48); ctx.lineTo(6,-35); ctx.lineTo(-6,-35); ctx.closePath(); ctx.fill();
+      ctx.fillStyle=rgba([176,141,69],brassA); ctx.fillRect(-1.3,-47.2,2.6,2.6);
+    }
+    if(coatId==='grey'){                       /* patch pockets and worn hem stitching */
+      ctx.strokeStyle=rgba(trimC,0.9); ctx.lineWidth=1;
+      ctx.strokeRect(-6.5,-34,4.5,4.5); ctx.strokeRect(2,-34,4.5,4.5);
+      ctx.beginPath(); ctx.moveTo(-7,-27.2); ctx.lineTo(7,-27.2); ctx.stroke();
+    }
+    /* the same old face: grey beard, mustache, nose */
+    ctx.fillStyle=rgba([165,158,145],0.92);
+    ctx.beginPath(); ctx.arc(1.5,-51.2,3.6,0,Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(2,-53.4,2.6,1,0,Math.PI,0); ctx.fill();
+    ctx.fillStyle=rgba([196,158,128],0.95);
+    ctx.beginPath(); ctx.arc(5,-54.6,1.4,0,6.283); ctx.fill();
+  }
   ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(4,-46); ctx.lineTo(26,-70); ctx.stroke();
   ctx.beginPath(); ctx.arc(27,-72,4,0,6.28); ctx.stroke();
   const sway=Math.sin(now*1.6)*3;
