@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hans">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>The Lamplighter</title>
-<meta name="description" content="The Lamplighter — a sleep-onset story game. Put a village of 200 lamps to bed, one slow task at a time, until sleep takes you.">
+<title>提灯人</title>
+<meta name="description" content="《提灯人》是一款帮助入睡的叙事游戏。一次只做一件慢慢的小事，把村里两百盏灯一一哄睡，直到睡意也带走你。">
 <meta name="theme-color" content="#05070f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,10 +12,20 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-  #charView { width:100%; height:340px; border:1px solid #2c2618; border-radius:16px;
+  #charView, #shopView { width:100%; height:340px; border:1px solid #2c2618; border-radius:16px;
     margin:6px 0 4px; touch-action:none; cursor:grab; overflow:hidden;
     background:radial-gradient(ellipse at 50% 80%, #0d1120 0%, #04050b 75%); }
-  #charView canvas { width:100% !important; height:100% !important; display:block; }
+  #charView canvas, #shopView canvas { width:100% !important; height:100% !important; display:block; }
+  #shopView { height:300px; display:none; }
+  #tryBar { display:none; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; margin:10px 0 6px; }
+  #tryBar.on { display:flex; }
+  #shopView.on { display:block; }
+  #tryName { font-size:14px; font-style:italic; color:#c9b98f; }
+  #tryCost { font-size:13px; color:#b9d98a; }
+  .buyBtn { border:1px solid #6a5c3c; background:#1a1710; color:#dcc99a; font-family:inherit;
+    font-size:13px; letter-spacing:1px; padding:9px 22px; border-radius:22px; cursor:pointer; }
+  .buyBtn.cant { opacity:.4; }
+  .putBack { font-size:12px; color:#6b6252; cursor:pointer; border-bottom:1px dotted #55503f; }
   #charHint { font-size:11px; color:#565040; text-align:center; letter-spacing:1px; margin-bottom:8px; }
 </style>
 <style>
@@ -144,52 +154,58 @@
 <!-- ================= HOME ================= -->
 <div id="home">
   <div id="homeHead">
-    <h1>THE LAMPLIGHTER</h1>
+    <h1>提灯人</h1>
     <div id="jarLine"></div>
   </div>
   <div id="panelWrap">
 
     <div class="panel on" id="panel-play">
-      <div class="sub">Two hundred lamps between the bakery and the far<br>edge of the parish. Nobody has ever reached the last.<br>That is not what the round is for.<br><br>Walk until sleep takes you. The round waits for you.</div>
+      <div class="sub">从面包房到教区尽头，一共有两百盏灯。<br>从来没有人走到最后一盏。<br>这本来也不是巡灯的目的。<br><br>一直走，直到睡意带走你。巡灯会等你回来。</div>
       <div id="journey"></div>
       <div id="curMap"></div>
-      <p class="note" style="margin-top:22px">Lower your screen brightness. Lie down.<br>Nothing can be failed. If you drift off, the round ends itself.</p>
+      <p class="note" style="margin-top:22px">把屏幕亮度调低。躺下来。<br>这里没有失败。如果你睡着了，巡灯会自己结束。</p>
     </div>
 
     <div class="panel" id="panel-custom">
-      <h2>CUSTOMIZATION</h2>
+      <h2>装束</h2>
       <div id="charView"></div>
-      <div id="charHint">drag to turn him</div>
-      <p class="note">Wear what you own. Buy more in the firefly shop.</p>
+      <div id="charHint">拖动可转动角色</div>
+      <p class="note">穿上你已有的衣物。更多物件可以在萤火虫小店换来。</p>
       <div id="customList"></div>
     </div>
 
     <div class="panel" id="panel-shop">
-      <h2>FIREFLY SHOP</h2>
-      <p class="note">Every lamp you put out pays a firefly or two into your jar.</p>
+      <h2>萤火虫小店</h2>
+      <p class="note" id="shopNote">每熄一盏灯，都会有一两只萤火虫飞进你的罐子。点一点任何物件，可以先试穿。</p>
+      <div id="shopView"></div>
+      <div id="tryBar">
+        <span id="tryName"></span><span id="tryCost"></span>
+        <button class="buyBtn" id="buyBtn"></button>
+        <span class="putBack" id="putBack"></span>
+      </div>
       <div id="shopList"></div>
     </div>
 
     <div class="panel" id="panel-prog">
-      <h2>PROGRESSION</h2>
-      <p class="note">Five maps, forty lamps each. A waymark stone every ten lamps remembers how far you came.</p>
+      <h2>巡灯进度</h2>
+      <p class="note">五张地图，每张四十盏灯。每十盏灯就有一块路标石，记得你走到了哪里。</p>
       <div id="mapList"></div>
     </div>
 
     <div class="panel" id="panel-ach">
-      <h2>ACHIEVEMENTS</h2>
-      <p class="note">Small honors, collected quietly. They will wait for morning.</p>
+      <h2>成就</h2>
+      <p class="note">一些安静收下的小荣誉。它们会等到早晨。</p>
       <div id="achList"></div>
     </div>
 
     <div class="panel" id="panel-account">
-      <h2>ACCOUNT</h2>
-      <div class="setRow" id="setLang">language · 语言 <span class="val" id="langVal">English</span></div>
-      <div class="setRow" id="setSound">sound <span class="val">on</span></div>
-      <div class="setRow" id="setVoice">spoken narration <span class="val">off</span></div>
-      <div class="setRow" id="setFresh"><span class="danger">abandon round, start a fresh parish</span><span class="val">&rsaquo;</span></div>
-      <div class="setRow" id="setWipe"><span class="danger">erase everything</span><span class="val">&rsaquo;</span></div>
-      <p class="note" style="margin-top:16px">Your round, jar and wardrobe are saved on this device, in this browser. The night deepens over half an hour of play, then holds.</p>
+      <h2>账号</h2>
+      <div class="setRow" id="setLang">语言 <span class="val" id="langVal">简体中文</span></div>
+      <div class="setRow" id="setSound">声音 <span class="val">开启</span></div>
+      <div class="setRow" id="setVoice">语音旁白 <span class="val">关闭</span></div>
+      <div class="setRow" id="setFresh"><span class="danger">放弃本轮，开始新的教区</span><span class="val">&rsaquo;</span></div>
+      <div class="setRow" id="setWipe"><span class="danger">清除全部数据</span><span class="val">&rsaquo;</span></div>
+      <p class="note" style="margin-top:16px">你的巡灯、萤火虫罐和衣柜会保存在这台设备的这个浏览器里。夜色会在半小时游玩中慢慢加深，然后停在那里。</p>
     </div>
 
   </div>
@@ -197,27 +213,27 @@
   <div id="tabbar">
     <div class="tab" data-tab="custom">
       <svg viewBox="0 0 24 24"><path d="M12 3l3 2 4-1 1 4-2 3 2 3-1 4-4-1-3 2-3-2-4 1-1-4 2-3-2-3 1-4 4 1z"/><circle cx="12" cy="12" r="3"/></svg>
-      <div class="tl">CUSTOMIZE</div>
+      <div class="tl">装束</div>
     </div>
     <div class="tab" data-tab="shop">
       <svg viewBox="0 0 24 24"><path d="M12 3v2M12 19v2M5 12H3M21 12h-2M6.3 6.3L4.9 4.9M19.1 19.1l-1.4-1.4M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg>
-      <div class="tl">SHOP</div>
+      <div class="tl">小店</div>
     </div>
     <div class="tab on" id="tab-play" data-tab="play">
       <div id="playBtn"><svg viewBox="0 0 24 24"><path d="M9 21h6M10 18h4M12 3c-3 0-4.5 2-4.5 4.5 0 2 1 3 2 4.5.7 1 .9 2 .9 3h3.2c0-1 .2-2 .9-3 1-1.5 2-2.5 2-4.5C16.5 5 15 3 12 3z"/></svg></div>
-      <div class="tl">PLAY</div>
+      <div class="tl">开始</div>
     </div>
     <div class="tab" data-tab="prog">
       <svg viewBox="0 0 24 24"><path d="M3 20l6-3 6 3 6-3V4l-6 3-6-3-6 3z"/><path d="M9 4v13M15 7v13"/></svg>
-      <div class="tl">MAPS</div>
+      <div class="tl">地图</div>
     </div>
     <div class="tab" data-tab="ach">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M9 13.5L7.5 21l4.5-2.5L16.5 21 15 13.5"/></svg>
-      <div class="tl">AWARDS</div>
+      <div class="tl">成就</div>
     </div>
     <div class="tab" data-tab="account">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>
-      <div class="tl">ACCOUNT</div>
+      <div class="tl">账号</div>
     </div>
   </div>
 </div>
@@ -253,7 +269,7 @@ function persist(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE)); }c
 if(!SAVE.seed){ SAVE.seed=(Math.random()*2**31)|0; persist(); }
 
 /* ---------------- language ---------------- */
-const LANG=(SAVE.prefs&&SAVE.prefs.lang)||(((navigator.language||'').toLowerCase().indexOf('zh')===0)?'zh':'en');
+const LANG=(SAVE.prefs&&SAVE.prefs.lang)||'zh';
 const ZH=LANG==='zh';
 const tr=(en,zh)=>ZH?zh:en;
 
@@ -281,23 +297,23 @@ const dist=(a,b,c,d)=>Math.hypot(a-c,b-d);
    MAPS — each with its own palette, pace and flavor
    ============================================================ */
 const MAPS=[
- {id:'village',name:'The Village',desc:'Where every round begins. Amber lamps and familiar doors.',
+ {id:'village',name:tr('The Village','村庄'),desc:tr("Where every round begins. Amber lamps and familiar doors.",'每一轮巡灯开始的地方。琥珀色的灯，熟悉的门。'),
   pal:{top:[15,19,38],bot:[38,36,58],ground:[20,19,30],glow:[235,190,110],sil:[10,11,20]},
   pace:1, walk:1, stars:1, mist:0, snow:0,
   weights:{curtains:3,shutters:3,quilt:3,teapot:2,musicbox:2,pump:2,gate:2,blot:2} },
- {id:'harbor',name:'The Grey Harbor',desc:'Sea-glass light and slow water. The boats sleep badly without you.',
+ {id:'harbor',name:tr('The Grey Harbor','灰港'),desc:tr("Sea-glass light and slow water. The boats sleep badly without you.",'海玻璃般的光，缓慢的水。没有你，小船睡不踏实。'),
   pal:{top:[9,22,28],bot:[20,42,48],ground:[13,22,24],glow:[150,215,190],sil:[6,14,16]},
   pace:.95, walk:.9, stars:.7, mist:1, snow:0,
   weights:{boats:3,candleboat:3,ferrycord:3,ripples:3,echo:2,bucket:2,leaves:2} },
- {id:'pine',name:'The Pinewood',desc:'Moss-green dark between the trees. Everything glows a little, quietly.',
+ {id:'pine',name:tr('The Pinewood','松林'),desc:tr("Moss-green dark between the trees. Everything glows a little, quietly.",'树影之间是苔绿色的黑暗。万物都微微发光，安安静静。'),
   pal:{top:[11,18,14],bot:[22,36,26],ground:[11,17,13],glow:[190,215,140],sil:[5,10,7]},
   pace:1, walk:.85, stars:.8, mist:.3, snow:0,
   weights:{fireflies:3,owl:3,web:3,stones:2,geese:2,cat:2,embers:2} },
- {id:'snow',name:'The Snowfields',desc:'Pale, hushed, slow. The snow does half your work for you.',
+ {id:'snow',name:tr('The Snowfields','雪原'),desc:tr("Pale, hushed, slow. The snow does half your work for you.",'苍白、寂静、缓慢。雪会替你做掉一半的事。'),
   pal:{top:[17,19,29],bot:[38,42,56],ground:[30,33,42],glow:[205,215,240],sil:[14,16,24]},
   pace:.85, walk:.8, stars:.5, mist:0, snow:1,
   weights:{snowpath:3,frost:3,hourglass:3,quilt:2,cart:2,washing:2,candles:2} },
- {id:'fells',name:'The Star Fells',desc:'High heather and half the sky. The last lamp in the parish lives here.',
+ {id:'fells',name:tr('The Star Fells','星丘'),desc:tr("High heather and half the sky. The last lamp in the parish lives here.",'高高的石南花，半片天空。教区最后一盏灯住在这里。'),
   pal:{top:[15,9,25],bot:[28,19,42],ground:[13,10,19],glow:[205,180,240],sil:[8,5,13]},
   pace:.85, walk:.85, stars:2, mist:0, snow:0,
   weights:{starline:3,weathervane:3,smoke:3,lock:2,echo:2,chalk:2,bellrope:2} },
@@ -637,19 +653,19 @@ const VIGNETTES=seq.map(m=>M[m]()); VIGNETTES.push(FINAL);
 
 /* ---------------- weather & moon (re-rolled nightly) ---------------- */
 const WEATHERS=[
- {id:'clear',  open:"The night is clear as well water. Even the chimney smoke goes straight up."},
- {id:'mist',   open:"Mist has come up from the river and is trying every doorstep in the village."},
- {id:'snow',   open:"Snow is falling, unhurried, as if it too had nowhere else to be."},
- {id:'breeze', open:"A small wind is loose tonight, turning leaves over to read their other sides."},
+ {id:'clear',  open:tr("The night is clear as well water. Even the chimney smoke goes straight up.","今晚清澈得像井水。连烟囱里的烟都笔直往上走。")},
+ {id:'mist',   open:tr("Mist has come up from the river and is trying every doorstep in the village.","雾从河上升起来，正在挨家挨户试探每一级门阶。")},
+ {id:'snow',   open:tr("Snow is falling, unhurried, as if it too had nowhere else to be.","雪落得不慌不忙，好像它也没有别处要去。")},
+ {id:'breeze', open:tr("A small wind is loose tonight, turning leaves over to read their other sides.","今晚有一阵小风在外面游荡，把叶子翻过来读另一面。")},
 ];
 const WEATHER=WEATHERS[(Math.random()*WEATHERS.length)|0];
 const MOONPHASE=Math.random();
 
-const DREAMS=["a paper kite","a wooden spoon","a green glass bottle","a ball of yarn","a rowing boat",
-"a straw hat","a brass key","a pine cone","a spinning top","a woven rug","a snow globe","a picnic basket",
-"a lighthouse","a pocket watch","a garden gate","a teacup","a ladder","a horseshoe","a quilt","a windmill",
-"a candle stub","a ship in a bottle","a bale of hay","a folding fan","a copper kettle","a rope swing",
-"a market stall","a hay cart","a weather vane","a skipping stone"];
+const DREAMS=ZH? ["一只纸风筝","一把木勺","一个绿色玻璃瓶","一团毛线","一艘划艇",
+"一顶草帽","一把黄铜钥匙","一枚松果","一只陀螺","一张编织地毯","一个雪景球","一只野餐篮",
+"一座灯塔","一只怀表","一道花园门","一只茶杯","一架梯子","一枚马蹄铁","一床被子","一架风车",
+"半截蜡烛","一艘瓶中船","一捆干草","一把折扇","一把铜水壶","一条秋千绳",
+"一个集市摊位","一辆干草车","一只风向标","一颗打水漂的石子"] : ["a paper kite","a wooden spoon","a green glass bottle","a ball of yarn","a rowing boat","a straw hat","a brass key","a pine cone","a spinning top","a woven rug","a snow globe","a picnic basket","a lighthouse","a pocket watch","a garden gate","a teacup","a ladder","a horseshoe","a quilt","a windmill","a candle stub","a ship in a bottle","a bale of hay","a folding fan","a copper kettle","a rope swing","a market stall","a hay cart","a weather vane","a skipping stone"];
 const nextDream=bag(DREAMS);
 
 /* ---------------- canvas ---------------- */
@@ -705,21 +721,21 @@ function touchMark(){ lastTouch=nowS();
    ACHIEVEMENTS
    ============================================================ */
 const ACHS=[
- {id:'first',   n:'First Breath',        d:'Put out your first lamp.'},
- {id:'ten',     n:'Ten Small Darknesses',d:'Put out ten lamps in your career.'},
- {id:'fifty',   n:'Half a Hundred',      d:'Put out fifty lamps in your career.'},
- {id:'hundred', n:'The Long Habit',      d:'Put out one hundred lamps in your career.'},
- {id:'parish',  n:'The Whole Parish',    d:'Finish all two hundred lamps of one round.'},
- {id:'waymark', n:'First Waymark',       d:'Pass your first checkpoint stone.'},
- {id:'map1',    n:'Past the Village',    d:'Walk beyond the fortieth lamp.'},
- {id:'map2',    n:'Harbor Sleeps',       d:'Put the Grey Harbor to bed.'},
- {id:'map3',    n:'Pinewood Hush',       d:'Put the Pinewood to bed.'},
- {id:'map4',    n:'Fields Gone Quiet',   d:'Put the Snowfields to bed.'},
- {id:'friend',  n:'Not Walking Alone',   d:'Walk the round with a companion.'},
- {id:'jar50',   n:'A Bright Jar',        d:'Hold fifty fireflies at once.'},
- {id:'spend',   n:'A New Coat of Night', d:'Buy something from the firefly shop.'},
- {id:'alltasks',n:'Every Kind of Kindness',d:'Complete every one of the thirty-six kinds of task.'},
- {id:'drift',   n:'The Best Ending',     d:'Drift off mid-round and let the night finish itself.'},
+ {id:'first',   n:'第一口气',        d:'熄灭你的第一盏灯。'},
+ {id:'ten',     n:'十小片黑暗',      d:'一共熄灭十盏灯。'},
+ {id:'fifty',   n:'半百之夜',        d:'一共熄灭五十盏灯。'},
+ {id:'hundred', n:'漫长的习惯',      d:'一共熄灭一百盏灯。'},
+ {id:'parish',  n:'整个教区',        d:'完成一整轮两百盏灯。'},
+ {id:'waymark', n:'第一块路标石',    d:'经过你的第一处检查点。'},
+ {id:'map1',    n:'走过村庄',        d:'越过第四十盏灯。'},
+ {id:'map2',    n:'港口睡了',        d:'把灰港哄睡。'},
+ {id:'map3',    n:'松林静下来',      d:'把松林哄睡。'},
+ {id:'map4',    n:'雪原无声',        d:'把雪原哄睡。'},
+ {id:'friend',  n:'不是独自行走',    d:'带着一个同伴巡灯。'},
+ {id:'jar50',   n:'明亮的罐子',      d:'一次拥有五十只萤火虫。'},
+ {id:'spend',   n:'一件新的夜衣',    d:'在萤火虫小店买下一样东西。'},
+ {id:'alltasks',n:'每一种善意',      d:'完成全部三十六种小任务。'},
+ {id:'drift',   n:'最好的结局',      d:'在巡灯途中睡去，让夜晚替你收尾。'},
 ];
 function award(id){ if(!SAVE.ach[id]){ SAVE.ach[id]=true; persist(); } }
 function checkAchievements(){
@@ -751,27 +767,41 @@ function initAudio(){
   const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
   const src=actx.createBufferSource(); src.buffer=noiseBuf; src.loop=true;
   const f=actx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=180; f.Q.value=0.4;
-  const g=actx.createGain(); g.gain.value=0.022; src.connect(f); f.connect(g); g.connect(gainMaster); src.start();
+  const g=actx.createGain(); g.gain.value=0.05; src.connect(f); f.connect(g); g.connect(gainMaster); src.start();
+  /* the wind breathes: a very slow LFO sweeps the noise filter (≈100–260 Hz over ~24s) */
+  try{
+    const lfo=actx.createOscillator(); lfo.type='sine'; lfo.frequency.value=1/24;
+    const lfoG=actx.createGain(); lfoG.gain.value=80;
+    lfo.connect(lfoG); lfoG.connect(f.frequency); lfo.start();
+    /* and the room swells and settles (≈±20% every 40s) */
+    const lfo2=actx.createOscillator(); lfo2.type='sine'; lfo2.frequency.value=1/40;
+    const lfo2G=actx.createGain(); lfo2G.gain.value=0.01;
+    lfo2.connect(lfo2G); lfo2G.connect(g.gain); lfo2.start();
+  }catch(e){}
 }
 
-/* generative lullaby: slow pentatonic notes, drifting downward, spacing out as the night deepens */
-const PAD_SCALE=[220,196,164.81,146.83,130.81,110];
-let padIdx=1, padNextAt=0;
-function playPad(f,vol,dur){ if(!actx||!soundOn) return; try{
-  const t=actx.currentTime;
-  [[f,1],[f*2,0.22],[f*1.5,0.10]].forEach(p2=>{
-    const o=actx.createOscillator(); o.type='sine'; o.frequency.value=p2[0];
-    const g2=actx.createGain(); g2.gain.setValueAtTime(0.0001,t);
-    g2.gain.linearRampToValueAtTime(vol*p2[1]*sfxVol(),t+dur*0.35);
-    g2.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    o.connect(g2); g2.connect(gainMaster); o.start(t); o.stop(t+dur+0.1); });
-}catch(e){} }
+/* ambient swells: rare, barely-there overtones of the drone itself — texture, not melody.
+   A soft partial (octave or fifth of the 48 Hz root) fades in over ~6s and out over ~8s. */
+let padNextAt=0;
+function swell(){
+  if(!actx||!soundOn) return;
+  try{
+    const t=actx.currentTime;
+    const root=96.4;
+    const f0=root*[1,1.5,2][(Math.random()*3)|0];   // same chord as the drone — always consonant
+    const detune=1+(Math.random()*0.004-0.002);
+    [[f0,1],[f0*detune*2,0.3]].forEach(p2=>{
+      const o=actx.createOscillator(); o.type='sine'; o.frequency.value=p2[0];
+      const g2=actx.createGain(); g2.gain.setValueAtTime(0.0001,t);
+      g2.gain.linearRampToValueAtTime(0.014*p2[1]*sfxVol(),t+6);
+      g2.gain.linearRampToValueAtTime(0.0001,t+14);
+      o.connect(g2); g2.connect(gainMaster); o.start(t); o.stop(t+14.5);
+    });
+  }catch(e){}
+}
 function padStep(now){
-  padIdx=clamp(padIdx+((Math.random()<0.6?1:-1)*(Math.random()<0.85?1:2)),0,PAD_SCALE.length-1);
-  if(padIdx===PAD_SCALE.length-1&&Math.random()<0.4) padIdx=0;   // resolve and begin again
-  playPad(PAD_SCALE[padIdx],0.05,7);
-  if(Math.random()<0.22) playPad(PAD_SCALE[padIdx]/2,0.02,10);   // occasional low root under it
-  padNextAt=now+lerp(3.5,8.5,ease(dimP()))+Math.random()*2;
+  swell();
+  padNextAt=now+lerp(22,45,ease(dimP()))+Math.random()*10;
 }
 function setVol(v){ if(gainMaster) gainMaster.gain.setTargetAtTime(v,actx.currentTime,2.5); }
 function sfxVol(){ return (1-dimP()*0.6); }
@@ -816,7 +846,9 @@ function speak(t){
     const u=new SpeechSynthesisUtterance(t);
     u.rate=lerp(0.82,0.68,dimP()); u.pitch=0.8; u.volume=lerp(0.8,0.25,dimP());
     const vs=speechSynthesis.getVoices();
-    const v=vs.find(v=>/en[-_]?(GB|UK)/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang));
+    const v=ZH
+      ? (vs.find(v=>/^zh[-_]?CN/i.test(v.lang))||vs.find(v=>/^zh/i.test(v.lang)))
+      : (vs.find(v=>/en[-_]?(GB|UK)/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang)));
     if(v) u.voice=v;
     speechSynthesis.speak(u); }catch(e){}
 }
@@ -875,9 +907,9 @@ cat(){
         else ctx.arc(ex,y-36,4-close*2.5,0,6.28);
         ctx.stroke(); }
       if(purrA>0.05){ ctx.fillStyle=`rgba(200,180,130,${purrA*0.5*P.dim})`;
-        ctx.font='italic 15px Georgia'; ctx.textAlign='center'; ctx.fillText('p r r r r',x,y-86); }
+        ctx.font='italic 15px Georgia'; ctx.textAlign='center'; ctx.fillText(tr('p r r r r','呼噜……'),x,y-86); }
       if(this.done){ ctx.fillStyle=rgba([200,180,130],0.6*P.dim);
-        ctx.font='italic 17px Georgia'; ctx.textAlign='center'; ctx.fillText('z z z',x+90,y-78); }
+        ctx.font='italic 17px Georgia'; ctx.textAlign='center'; ctx.fillText(tr('z z z','睡着了'),x+90,y-78); }
       ctx.strokeStyle=rgba([200,180,130],0.35*P.dim); ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.arc(x,y+70,26,-Math.PI/2,-Math.PI/2+p*6.28); ctx.stroke(); },
     down(){},up(){},
@@ -960,7 +992,7 @@ boats(cfg){
         ctx.strokeStyle=rgba(mix(P.fig,[90,80,90],0.3),1); ctx.lineWidth=2.5;
         ctx.beginPath(); ctx.moveTo(0,-2); ctx.lineTo(0,-34); ctx.stroke();
         if(b.amp<0.16){ ctx.fillStyle=rgba([200,180,130],0.5*P.dim);
-          ctx.font='italic 13px Georgia'; ctx.textAlign='center'; ctx.fillText('z z',12,-40); }
+          ctx.font='italic 13px Georgia'; ctx.textAlign='center'; ctx.fillText(tr('z z','睡了'),12,-40); }
         ctx.restore(); } },
     down(){},move(){},up(){} };
 },
@@ -985,7 +1017,7 @@ clock(cfg){
       ctx.lineWidth=4.5; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+Math.cos(hA)*(r-46),y+Math.sin(hA)*(r-46)); ctx.stroke();
       ctx.fillStyle=rgba([210,185,120],0.9*P.dim); ctx.beginPath(); ctx.arc(x,y,4,0,6.28); ctx.fill();
       if(this.done&&(tick%1.6)<0.8){ ctx.fillStyle=rgba([200,180,130],0.5*P.dim);
-        ctx.font='italic 13px Georgia'; ctx.textAlign='center'; ctx.fillText('tick',x+r+26,y); } },
+        ctx.font='italic 13px Georgia'; ctx.textAlign='center'; ctx.fillText(tr('tick','滴答'),x+r+26,y); } },
     down(){ prevA=Math.atan2(ptr.y-y,ptr.x-x); },
     up(){ prevA=null; },
     move(){ if(!ptr.down||prevA===null) return;
@@ -1177,7 +1209,7 @@ leaves(cfg){
       if(dropped<need){ ctx.fillStyle=rgba([200,180,130],0.35*P.dim);
         ctx.font='italic 13px Georgia'; ctx.textAlign='center';
         const left=need-dropped;
-        ctx.fillText(left+(left===1?' '+word+' left':' left'),CX(),raily-18); } },
+        ctx.fillText(tr(left+(left===1?' '+word+' left':' left'),'还剩 '+left+' 片'+word),CX(),raily-18); } },
     down(){ if(dropped<need){ dropped++; sfx.plop(0.5);
         ls.push({x:ptr.x,y:raily+6,t:0,rot:rnd(0,6),spin:rnd(-1,1),r:rnd(0,3)}); } },
     move(){},up(){} };
@@ -1313,7 +1345,7 @@ gate(){
       ctx.beginPath(); ctx.moveTo(ex,ey-56); ctx.lineTo(ex,ey+4); ctx.stroke();
       ctx.fillStyle=rgba([200,180,130],0.25*P.dim);
       if(!this.done){ ctx.font='italic 12px Georgia'; ctx.textAlign='center';
-        ctx.fillText('~ creak ~',hx+len/2,hy-84); } },
+        ctx.fillText(tr('~ creak ~','~ 咯吱 ~'),hx+len/2,hy-84); } },
     down(){},up(){},
     move(){ if(!ptr.down) return;
       const ex=hx+Math.cos(a)*len, ey=hy+Math.sin(a)*len*0.35;
@@ -1396,7 +1428,7 @@ owl(){
         g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,`rgba(0,0,0,${v})`);
         ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
       if(this.done){ ctx.fillStyle=rgba([200,180,130],0.5*P.dim);
-        ctx.font='italic 15px Georgia'; ctx.textAlign='center'; ctx.fillText('z z z',x+46,y-52); } },
+        ctx.font='italic 15px Georgia'; ctx.textAlign='center'; ctx.fillText(tr('z z z','睡着了'),x+46,y-52); } },
     down(){},move(){},up(){} };
 },
 
@@ -1483,7 +1515,7 @@ teapot(){
         ctx.bezierCurveTo(cx3-10,cy3-40,cx3+2,cy3-46,cx3-2,cy3-58); ctx.stroke(); }
       if(!pouring()&&!this.done&&tilt>0.05){ ctx.fillStyle=rgba([200,180,130],0.3*P.dim);
         ctx.font='italic 12px Georgia'; ctx.textAlign='center';
-        ctx.fillText(tilt>=0.95?'gently — not so far':'a little further...',px2,py2-70); } },
+        ctx.fillText(tilt>=0.95?tr('gently — not so far','轻一点——不用倒那么远'):tr('a little further...','再倾斜一点……'),px2,py2-70); } },
     down(){ gripping=dist(ptr.x,ptr.y,px2,py2)<80; },
     up(){ gripping=false; },
     move(dx,dy){ if(gripping&&ptr.down&&ptr.speed<400) tilt=clamp(tilt+dy*0.006,0,1.1); } };
@@ -1553,7 +1585,7 @@ cart(){
           ctx.lineTo(x+s*30+Math.cos(a)*wr,gy+2+Math.sin(a)*wr); ctx.stroke(); } }
       if(!this.done&&v<2){ ctx.fillStyle=rgba([200,180,130],0.3*P.dim);
         ctx.font='italic 12px Georgia'; ctx.textAlign='center';
-        ctx.fillText('press and hold behind the cart',x-10,gy-72); } },
+        ctx.fillText(tr('press and hold behind the cart','在车后按住，慢慢推'),x-10,gy-72); } },
     down(){},move(){},up(){} };
 },
 
@@ -1636,7 +1668,7 @@ quilt(){
       ctx.strokeStyle=rgba([170,140,150],0.7*P.dim); ctx.lineWidth=3;
       ctx.beginPath(); ctx.moveTo(bx-116,qy); ctx.lineTo(bx+116,qy); ctx.stroke();
       if(this.done){ ctx.fillStyle=rgba([200,180,130],0.5*P.dim);
-        ctx.font='italic 14px Georgia'; ctx.textAlign='center'; ctx.fillText('z z z',bx-60,by-64); } },
+        ctx.font='italic 14px Georgia'; ctx.textAlign='center'; ctx.fillText(tr('z z z','睡着了'),bx-60,by-64); } },
     down(){ gripping=Math.abs(ptr.y-qy)<44&&Math.abs(ptr.x-bx)<130; },
     up(){ gripping=false; },
     move(dx,dy){ if(!gripping||!ptr.down) return;
@@ -1672,7 +1704,7 @@ smoke(){
         ctx.strokeStyle=`rgba(170,172,185,${(0.16-t*0.13)*P.dim})`; ctx.stroke(); }
       if(strokes<5){ ctx.fillStyle=rgba([200,180,130],0.3*P.dim);
         ctx.font='italic 12px Georgia'; ctx.textAlign='center';
-        ctx.fillText((5-strokes)+' slow strokes to go',CX(),CY()+140); } },
+        ctx.fillText(tr((5-strokes)+' slow strokes to go','还要慢慢拂 '+(5-strokes)+' 下'),CX(),CY()+140); } },
     down(){ this._sx=ptr.x; },
     up(){ this._sx=null; },
     move(dx){ if(!ptr.down||this._sx==null) return;
@@ -1787,7 +1819,7 @@ geese(){
           ctx.fillText(String(counted),goose.x,goose.y-18); } }
       ctx.fillStyle=rgba([200,180,130],0.4*P.dim);
       ctx.font='italic 13px Georgia'; ctx.textAlign='center';
-      ctx.fillText(counted+' of 5 counted',CX(),CY()+120); },
+      ctx.fillText(tr(counted+' of 5 counted','已数 '+counted+' / 5 只'),CX(),CY()+120); },
     down(){ if(goose&&!goose.got&&Math.abs(goose.x-mx2)<60){
         goose.got=true; counted++; sfx.chime(); } },
     move(){},up(){} };
@@ -1815,16 +1847,16 @@ echo(){
         const f=(now-tCall)/waitDur;
         ctx.fillStyle=rgba([200,180,130],(0.5-f*0.4)*P.dim);
         ctx.font='italic 13px Georgia'; ctx.textAlign='center';
-        ctx.fillText('. . .',x,y+60+f*30);
+        ctx.fillText('……',x,y+60+f*30);
       }
       if(rip>0){ ctx.strokeStyle=rgba([200,190,150],rip*0.4*P.dim); ctx.lineWidth=1.5;
         ctx.beginPath(); ctx.ellipse(x,y,72*(1.1-rip*0.4),17*(1.1-rip*0.4),0,0,6.28); ctx.stroke();
         ctx.fillStyle=rgba([200,180,130],rip*0.5*P.dim);
         ctx.font='italic 14px Georgia'; ctx.textAlign='center';
-        ctx.fillText('...hello',x,y-40); }
+        ctx.fillText(tr('...hello','……你好'),x,y-40); }
       ctx.fillStyle=rgba([200,180,130],0.35*P.dim);
       ctx.font='italic 12px Georgia'; ctx.textAlign='center';
-      ctx.fillText(n+' of 3 echoes home',x,y+110); },
+      ctx.fillText(tr(n+' of 3 echoes home','已有 '+n+' / 3 个回声回家'),x,y+110); },
     down(){ if(state==='idle'&&!this.done){
         state='wait'; tCall=nowS(); waitDur=2+n; sfx.tone(300,180,0.5,0.03); } },
     move(){},up(){} };
@@ -1938,7 +1970,7 @@ hourglass(){
       ctx.restore();
       if(!flipped){ ctx.fillStyle=rgba([200,180,130],0.35*P.dim);
         ctx.font='italic 12px Georgia'; ctx.textAlign='center';
-        ctx.fillText('touch to turn it over',x,y+110); } },
+        ctx.fillText(tr('touch to turn it over','轻触，把它翻过来'),x,y+110); } },
     down(){ if(!flipped&&dist(ptr.x,ptr.y,x,y)<120){ flipped=true; sfx.clunk(); } },
     move(){},up(){} };
 },
@@ -1978,7 +2010,7 @@ pump(){
         ctx.beginPath(); ctx.arc(x-38,y-8+(now-lastDrip)*130,2,0,6.28); ctx.fill(); }
       ctx.fillStyle=rgba([200,180,130],0.35*P.dim);
       ctx.font='italic 12px Georgia'; ctx.textAlign='center';
-      ctx.fillText(strokes+' of 3 strokes',x+20,y+80); },
+      ctx.fillText(tr(strokes+' of 3 strokes','已压 '+strokes+' / 3 下'),x+20,y+80); },
     down(){},move(){},up(){} };
 },
 
@@ -2007,7 +2039,7 @@ ferrycord(){
       const early=nowS()-lastBell<3&&bells>0&&bells<3;
       ctx.fillStyle=rgba([200,180,130],0.35*P.dim);
       ctx.font='italic 12px Georgia'; ctx.textAlign='center';
-      ctx.fillText(early?'wait a breath between pulls...':bells+' of 3 bells',x-40,top+230); },
+      ctx.fillText(early?tr('wait a breath between pulls...','两次拉绳之间，等一口气……'):tr(bells+' of 3 bells','已响 '+bells+' / 3 声钟'),x-40,top+230); },
     down(){ gripping=dist(ptr.x,ptr.y,x,top+162+d)<60; },
     up(){ if(gripping){
         if(d>55){ if(nowS()-lastBell>=3){ bells++; lastBell=nowS(); sfx.dbell(); }
@@ -2040,7 +2072,7 @@ starline(){
         ctx.beginPath(); ctx.arc(s.x,s.y,2.6,0,6.28); ctx.fill(); }
       if(this.done){ ctx.fillStyle=rgba([210,215,235],0.5*P.dim);
         ctx.font='italic 15px Georgia'; ctx.textAlign='center';
-        ctx.fillText('the Shepherd',CX(),CY()+80); } },
+        ctx.fillText(tr('the Shepherd','牧羊人'),CX(),CY()+80); } },
     down(){ for(const s of ss) if(s.linked&&dist(ptr.x,ptr.y,s.x,s.y)<40) from=s; },
     move(){ if(!ptr.down||!from) return;
       for(const s of ss) if(!s.linked&&dist(ptr.x,ptr.y,s.x,s.y)<34){
@@ -2136,12 +2168,12 @@ function miniComplete(){
   checkAchievements(); persist();
   /* checkpoint & map-border lines */
   const inMap=stop%PER_MAP, mi=mapIndexOf(stop);
-  let line=v.done+" The lamp breathes out, and behind some window someone begins to dream of "+nextDream()+".";
+  let line=v.done+tr(" The lamp breathes out, and behind some window someone begins to dream of "+nextDream()+"."," 灯轻轻吐出最后一口光。某扇窗后，有人开始梦见"+nextDream()+"。");
   if(inMap===PER_MAP-1&&mi<MAPS.length-1){
-    line=v.done+" And with that, "+MAPS[mi].name+" is asleep behind you. The road bends toward "+MAPS[mi+1].name+".";
+    line=v.done+tr(" And with that, "+MAPS[mi].name+" is asleep behind you. The road bends toward "+MAPS[mi+1].name+"."," 就这样，"+MAPS[mi].name+"在你身后睡着了。道路转向"+MAPS[mi+1].name+"。");
   } else if((inMap+1)%CP_EVERY===0){
     award('waymark'); persist();
-    line=v.done+" A waymark stone by the path: "+(inMap+1)+" lamps of "+MAPS[mi].name+" behind you.";
+    line=v.done+tr(" A waymark stone by the path: "+(inMap+1)+" lamps of "+MAPS[mi].name+" behind you."," 路边有一块路标石："+MAPS[mi].name+"已有 "+(inMap+1)+" 盏灯在你身后。");
   }
   say(line);
   phase='dream';
@@ -2165,22 +2197,22 @@ function endGame(msg1,msg2){
    HOME SHELL — tabs, wardrobe, shop, maps, achievements, account
    ============================================================ */
 const ITEMS={
- coat:[{id:'grey',n:'old grey coat',cost:0,c:[28,26,36]},
-       {id:'moss',n:'moss-green coat',cost:8,c:[30,46,32]},
-       {id:'harbor',n:'harbor-blue coat',cost:8,c:[26,34,58]},
-       {id:'ember',n:'ember-red coat',cost:12,c:[58,28,24]}],
- lantern:[{id:'amber',n:'amber flame',cost:0,c:[235,190,110]},
-       {id:'moon',n:'moonlight flame',cost:10,c:[215,220,240]},
-       {id:'rose',n:'rose flame',cost:10,c:[235,165,155]},
-       {id:'will',n:"will-o'-wisp flame",cost:14,c:[175,230,165]}],
- hat:[{id:'cap',n:"lamplighter's cap",cost:0},
-      {id:'brim',n:'wide-brimmed hat',cost:6},
-      {id:'hood',n:'winter hood',cost:6}],
- pet:[{id:'none',n:'no companion',cost:0},
-      {id:'cat',n:'a grey cat',cost:20},
-      {id:'dog',n:'a small dog',cost:20}],
+ coat:[{id:'grey',n:'旧灰外套',cost:0,c:[28,26,36]},
+       {id:'moss',n:'苔绿色外套',cost:8,c:[30,46,32]},
+       {id:'harbor',n:'港蓝色外套',cost:8,c:[26,34,58]},
+       {id:'ember',n:'余烬红外套',cost:12,c:[58,28,24]}],
+ lantern:[{id:'amber',n:'琥珀火苗',cost:0,c:[235,190,110]},
+       {id:'moon',n:'月光火苗',cost:10,c:[215,220,240]},
+       {id:'rose',n:'玫瑰火苗',cost:10,c:[235,165,155]},
+       {id:'will',n:"鬼火火苗",cost:14,c:[175,230,165]}],
+ hat:[{id:'cap',n:"提灯人的帽子",cost:0},
+      {id:'brim',n:'宽檐帽',cost:6},
+      {id:'hood',n:'冬日兜帽',cost:6}],
+ pet:[{id:'none',n:'没有同伴',cost:0},
+      {id:'cat',n:'一只灰猫',cost:20},
+      {id:'dog',n:'一只小狗',cost:20}],
 };
-const CAT_LABEL={coat:'coats',lantern:'lantern flames',hat:'hats',pet:'companions'};
+const CAT_LABEL={coat:'外套',lantern:'灯火',hat:'帽子',pet:'同伴'};
 function itemOf(cat,id){ return ITEMS[cat].find(i=>i.id===id); }
 function equippedItem(cat){ return itemOf(cat,SAVE.equipped[cat])||ITEMS[cat][0]; }
 
@@ -2429,18 +2461,19 @@ function buildCharacter(){
 }
 
 function renderHead(){
-  S('jarLine').innerHTML='<span class="ff">'+SAVE.fireflies+' fireflies</span> · '
-    +SAVE.lampsTotal+' lamps in your career'+(SAVE.nights>0?' · '+SAVE.nights+' full rounds':'');
+  S('jarLine').innerHTML=ZH
+    ? '<span class="ff">'+SAVE.fireflies+' 只萤火虫</span> · 总共 '+SAVE.lampsTotal+' 盏灯'+(SAVE.nights>0?' · '+SAVE.nights+' 轮完整巡灯':'')
+    : '<span class="ff">'+SAVE.fireflies+' fireflies</span> · '+SAVE.lampsTotal+' lamps in your career'+(SAVE.nights>0?' · '+SAVE.nights+' full rounds':'');
 }
 function renderPlay(){
   const mi=mapIndexOf(clamp(SAVE.stop,0,TOTAL-1)), m=MAPS[mi];
   const inMap=SAVE.stop%PER_MAP;
   S('journey').innerHTML=SAVE.stop>0&&SAVE.stop<TOTAL
-    ? "The round waits at lamp "+(SAVE.stop+1)+" of "+TOTAL+"."
-    : "A fresh parish. Two hundred unlit... no — two hundred <i>lit</i> lamps, waiting.";
+    ? tr("The round waits at lamp "+(SAVE.stop+1)+" of "+TOTAL+".","巡灯停在第 "+(SAVE.stop+1)+" / "+TOTAL+" 盏灯，等你回来。")
+    : tr("A fresh parish. Two hundred unlit... no — two hundred <i>lit</i> lamps, waiting.","新的教区。两百盏未熄……不，是两百盏<i>亮着</i>的灯，正在等你。");
   S('curMap').innerHTML='<span class="mswatch" style="background:linear-gradient(90deg,'
-    +rgba(m.pal.bot,1)+','+rgba(m.pal.glow,.8)+')"></span><b>'+m.name+'</b> · lamp '
-    +(SAVE.stop<TOTAL?(inMap+1):PER_MAP)+' of '+PER_MAP;
+    +rgba(m.pal.bot,1)+','+rgba(m.pal.glow,.8)+')"></span><b>'+m.name+'</b>'
+    +tr(' · lamp '+(SAVE.stop<TOTAL?(inMap+1):PER_MAP)+' of '+PER_MAP,' · 第 '+(SAVE.stop<TOTAL?(inMap+1):PER_MAP)+' / '+PER_MAP+' 盏');
 }
 function renderCustom(){
   const w=S('customList'); w.innerHTML='';
@@ -2457,27 +2490,70 @@ function renderCustom(){
     }
   }
 }
+/* ---- try-before-you-buy ---- */
+let TRYON=null, SV=null;
+function startShopPreview(){
+  if(SV) return;
+  const cont=S('shopView'); cont.classList.add('on'); cont.innerHTML='';
+  const c=document.createElement('canvas');
+  const w=cont.clientWidth||340, ht=300, dpr=Math.min(devicePixelRatio||1,2);
+  c.width=w*dpr; c.height=ht*dpr; c.style.width='100%'; c.style.height='100%';
+  cont.appendChild(c);
+  const c2=c.getContext('2d'); c2.setTransform(dpr,0,0,dpr,0,0);
+  SV={c2,w,h:ht,alive:true};
+  (function loop(){
+    if(!SV||!SV.alive) return;
+    requestAnimationFrame(loop);
+    if(!document.getElementById('panel-shop').classList.contains('on')||S('home').classList.contains('gone')) return;
+    if(TRYON){ const bak=SAVE.equipped[TRYON.cat]; SAVE.equipped[TRYON.cat]=TRYON.id;
+      try{ drawPreview2D(SV.c2,SV.w,SV.h,nowS()); } finally { SAVE.equipped[TRYON.cat]=bak; } }
+    else drawPreview2D(SV.c2,SV.w,SV.h,nowS());
+  })();
+}
+function stopShopPreview(){ if(SV){ SV.alive=false; SV=null; }
+  const cont=S('shopView'); if(cont){ cont.classList.remove('on'); cont.innerHTML=''; }
+  TRYON=null; updateTryBar(); }
+function tryOn(cat,id){ TRYON={cat,id}; startShopPreview(); updateTryBar(); renderShop(); }
+function updateTryBar(){
+  const bar=S('tryBar'); if(!bar) return;
+  if(!TRYON){ bar.classList.remove('on'); return; }
+  const it=itemOf(TRYON.cat,TRYON.id);
+  bar.classList.add('on');
+  S('tryName').textContent=it.n;
+  S('tryCost').textContent=tr('· '+it.cost+' fireflies','· '+it.cost+' 只萤火虫');
+  S('putBack').textContent=tr('put it back','放回去');
+  const can=SAVE.fireflies>=it.cost;
+  const btn=S('buyBtn');
+  btn.classList.toggle('cant',!can);
+  btn.textContent=can?tr('buy','买下'):tr('not enough fireflies yet','萤火虫还不够');
+}
+S('buyBtn').addEventListener('click',()=>{
+  if(!TRYON) return;
+  const it=itemOf(TRYON.cat,TRYON.id);
+  if(SAVE.fireflies<it.cost) return;
+  SAVE.fireflies-=it.cost; SAVE.owned[TRYON.cat].push(TRYON.id); SAVE.equipped[TRYON.cat]=TRYON.id;
+  award('spend'); checkAchievements(); persist();
+  TRYON=null; updateTryBar();
+  renderHead(); renderShop(); renderCustom(); buildCharacter();
+});
+S('putBack').addEventListener('click',()=>{ TRYON=null; updateTryBar(); renderShop(); });
+
 function renderShop(){
   const w=S('shopList'); w.innerHTML='';
   for(const cat of Object.keys(ITEMS)){
     const unowned=ITEMS[cat].filter(it=>!SAVE.owned[cat].includes(it.id));
     if(!unowned.length) continue;
-    const h=document.createElement('h2'); h.textContent=CAT_LABEL[cat].toUpperCase(); w.appendChild(h);
+    const h2=document.createElement('h2'); h2.textContent=CAT_LABEL[cat].toUpperCase(); w.appendChild(h2);
     for(const it of unowned){
-      const can=SAVE.fireflies>=it.cost;
+      const trying=TRYON&&TRYON.cat===cat&&TRYON.id===it.id;
       const b=document.createElement('button');
-      b.className='witem'+(can?'':' cant');
+      b.className='witem'+(trying?' worn':'');
       b.innerHTML=it.n+' <span class="cost">· '+it.cost+'</span>';
-      b.addEventListener('click',()=>{
-        if(SAVE.fireflies>=it.cost){
-          SAVE.fireflies-=it.cost; SAVE.owned[cat].push(it.id); SAVE.equipped[cat]=it.id;
-          award('spend'); checkAchievements(); persist();
-          renderHead(); renderShop(); renderCustom(); buildCharacter();
-        } });
+      b.addEventListener('click',()=>tryOn(cat,it.id));
       w.appendChild(b);
     }
   }
-  if(!w.children.length) w.innerHTML='<p class="note">The shop is bare — you own everything. The fireflies are just company now.</p>';
+  if(!w.children.length) w.innerHTML='<p class="note">'+tr('The shop is bare — you own everything. The fireflies are just company now.','小店已经空了——你拥有了一切。现在萤火虫只是陪着你。')+'</p>';
 }
 function renderProg(){
   const w=S('mapList'); w.innerHTML='';
@@ -2493,7 +2569,7 @@ function renderProg(){
       cps+='<span class="cp'+(doneL>=c*CP_EVERY?' hit':'')+'"></span>';
     card.innerHTML='<span class="mswatch" style="background:linear-gradient(90deg,'
       +rgba(m.pal.top,1)+','+rgba(m.pal.bot,1)+','+rgba(m.pal.glow,.85)+')"></span>'
-      +'<span class="mname">'+m.name+'</span>'+(isHere?'<span class="here">— you are here</span>':'')
+      +'<span class="mname">'+m.name+'</span>'+(isHere?'<span class="here">'+tr('— you are here','——你在这里')+'</span>':'')
       +'<div class="mdesc">'+m.desc+'</div>'
       +'<div class="mbar"><i style="width:'+(doneL/PER_MAP*100)+'%"></i></div>'
       +'<div class="cpRow">'+cps+'</div>';
@@ -2510,13 +2586,13 @@ function renderAch(){
     d.innerHTML='<span class="dot"></span><span><div class="an">'+a.n+'</div><div class="ad">'+a.d+'</div></span>';
     w.appendChild(d);
   }
-  const h=document.createElement('p'); h.className='note'; h.textContent=got+' of '+ACHS.length+' collected.';
+  const h=document.createElement('p'); h.className='note'; h.textContent=tr(got+' of '+ACHS.length+' collected.','已收集 '+got+' / '+ACHS.length+' 个成就。');
   w.prepend(h);
 }
 function renderAccount(){
   S('langVal').textContent=ZH?'简体中文':'English';
-  S('setSound').querySelector('.val').textContent=soundOn?'on':'off';
-  S('setVoice').querySelector('.val').textContent=voiceOn?'on':'off';
+  S('setSound').querySelector('.val').textContent=soundOn?tr('on','开启'):tr('off','关闭');
+  S('setVoice').querySelector('.val').textContent=voiceOn?tr('on','开启'):tr('off','关闭');
 }
 function renderAll(){ renderHead(); renderPlay(); renderCustom(); renderShop(); renderProg(); renderAch(); renderAccount(); }
 
@@ -2526,6 +2602,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='panel-'+id));
   if(id==='custom') ensureThree();
+  if(id==='shop') startShopPreview(); else stopShopPreview();
 }));
 S('setLang').addEventListener('click',()=>{ SAVE.prefs.lang=ZH?'en':'zh'; persist(); location.reload(); });
 S('setSound').addEventListener('click',()=>{ soundOn=!soundOn; SAVE.prefs.sound=soundOn; persist(); renderAccount();
@@ -2535,6 +2612,34 @@ S('setFresh').addEventListener('click',()=>{
   SAVE.stop=0; SAVE.seed=null; persist(); location.reload(); });
 S('setWipe').addEventListener('click',()=>{
   try{ localStorage.removeItem(SAVE_KEY); }catch(e){} location.reload(); });
+/* static shell: authored in Chinese, swapped to English when the toggle says so */
+function applyLang(){
+  try{ document.title=tr('The Lamplighter','提灯人');
+    if(document.documentElement) document.documentElement.lang=ZH?'zh-Hans':'en'; }catch(e){}
+  if(ZH) return;                       // Chinese is as-authored in the HTML
+  const set=(sel,txt,html2)=>{ const el=document.querySelector(sel); if(el){ if(html2) el.innerHTML=txt; else el.textContent=txt; } };
+  set('#homeHead h1','THE LAMPLIGHTER');
+  set('#panel-play .sub','Two hundred lamps between the bakery and the far<br>edge of the parish. Nobody has ever reached the last.<br>That is not what the round is for.<br><br>Walk until sleep takes you. The round waits for you.',1);
+  set('#panel-play .note','Lower your screen brightness. Lie down.<br>Nothing can be failed. If you drift off, the round ends itself.',1);
+  set('#panel-custom h2','CUSTOMIZATION');
+  set('#charHint','drag to turn him');
+  set('#panel-custom .note','Wear what you own. Buy more in the firefly shop.');
+  set('#panel-shop h2','FIREFLY SHOP');
+  set('#shopNote','Every lamp you put out pays a firefly or two into your jar. Tap anything to try it on first.');
+  set('#panel-prog h2','PROGRESSION');
+  set('#panel-prog .note','Five maps, forty lamps each. A waymark stone every ten lamps remembers how far you came.');
+  set('#panel-ach h2','ACHIEVEMENTS');
+  set('#panel-ach .note','Small honors, collected quietly. They will wait for morning.');
+  set('#panel-account h2','ACCOUNT');
+  set('#panel-account .note','Your round, jar and wardrobe are saved on this device, in this browser. The night deepens over half an hour of play, then holds.');
+  const lbl=(id,txt)=>{ const el=document.getElementById(id); if(el&&el.firstChild&&el.firstChild.nodeType===3) el.firstChild.nodeValue=txt+' '; };
+  lbl('setLang','language · 语言'); lbl('setSound','sound'); lbl('setVoice','spoken narration');
+  const dg=(id,txt)=>{ const el=document.querySelector('#'+id+' .danger'); if(el) el.textContent=txt; };
+  dg('setFresh','abandon round, start a fresh parish'); dg('setWipe','erase everything');
+  const tl=['CUSTOMIZE','SHOP','PLAY','MAPS','AWARDS','ACCOUNT'];
+  document.querySelectorAll('.tl').forEach((el,i)=>{ if(tl[i]) el.textContent=tl[i]; });
+}
+applyLang();
 renderAll();
 
 /* ---------------- start / resume a round ---------------- */
@@ -2553,8 +2658,8 @@ function beginRound(){
   companionKind=SAVE.equipped.pet;
   started=true; t0=nowS(); lastTouch=t0;
   const m=curMap();
-  const opening=stop===0? " You button your coat and start the round."
-    : " You pick the round up where you left it — lamp "+(stop+1)+", in "+m.name+".";
+  const opening=stop===0? tr(" You button your coat and start the round."," 你扣好外套，开始这一轮巡灯。")
+    : tr(" You pick the round up where you left it — lamp "+(stop+1)+", in "+m.name+"."," 你从上次停下的地方继续巡灯——第 "+(stop+1)+" 盏灯，位于"+m.name+"。");
   setTimeout(()=>{ const g=say(WEATHER.open+opening);
     setTimeout(()=>hushIfStale(g),9000); },1500);
 }
@@ -2600,7 +2705,7 @@ function frame(){
   const idle=now-lastTouch;
   if(!letGo&&idle>IDLE_WHISPER&&(phase==='vignette'||phase==='mini'||phase==='extinguish')){
     letGo=true;
-    const g=say("No hurry. The lamp can wait all night if it needs to.");
+    const g=say(tr("No hurry. The lamp can wait all night if it needs to.","不用急。若有需要，这盏灯可以等你一整晚。"));
     setTimeout(()=>hushIfStale(g),10000);
   }
   if(!drowsing&&idle>IDLE_SLEEP){
@@ -2621,7 +2726,7 @@ function frame(){
     px=Math.min(px+speed*dt,lamps[stop].x-40);
     if(px>=lamps[stop].x-40){
       phase='vignette'; waitTap=true;
-      say(VIGNETTES[stop].intro,'touch anywhere');
+      say(VIGNETTES[stop].intro,'轻触任意位置');
     }
   }
   else if(phase==='mini'){
@@ -2641,8 +2746,8 @@ function frame(){
       lamps[stop].lit=false;
       SAVE.fireflies+=25; SAVE.lampsTotal++; SAVE.nights++;
       SAVE.stop=0; SAVE.seed=null; award('parish'); checkAchievements(); persist();
-      endGame("Two hundred lamps. Five maps dark and dreaming, end to end — a thing no lamplighter has ever seen. Twenty-five fireflies find your jar on their own, out of respect.",
-              "And now the last light out is yours. Put the phone down — tomorrow there will be a new parish, and the round begins again, as rounds do.");
+      endGame(tr("Two hundred lamps. Five maps dark and dreaming, end to end — a thing no lamplighter has ever seen. Twenty-five fireflies find your jar on their own, out of respect.","两百盏灯。五张地图首尾相连，全都暗下去，沉入梦中——这是没有哪个提灯人见过的景象。二十五只萤火虫出于敬意，自己飞进了你的罐子。"),
+              tr("And now the last light out is yours. Put the phone down — tomorrow there will be a new parish, and the round begins again, as rounds do.","现在，最后要熄灭的是你自己的光。把手机放下吧——明天会有新的教区，巡灯也会像往常一样重新开始。"));
     }
   }
   else if(phase==='dream'){
